@@ -13,6 +13,21 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def status(message):
-    time = datetime.time
-    status = "[~] "
+def nominal(message, verbose):
+    if verbose is True:
+        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = "\r" + bcolors.OKGREEN + ("[~] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
+        sys.stdout.write(status)
+        sys.stdout.flush()
+
+def error(message, verbose):
+    if verbose is True:
+        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = bcolors.FAIL + ("\n[X] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
+        print(status)
+
+def event(message, verbose):
+    if verbose is True:
+        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = bcolors.OKBLUE + ("\n[!] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
+        print(status)
