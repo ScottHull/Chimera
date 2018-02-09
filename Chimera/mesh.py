@@ -32,6 +32,7 @@ class Mesh:
         t_start = time.time()
         x_coords = np.arange(0, self.x + self.spatial_res, self.spatial_res)
         y_coords = np.arange(0, self.y + self.spatial_res, self.spatial_res)
+        nodes = []
         if self.dimensions is 3:
             console.nominal("Detected a 3-D system! Generating a {} x {} x {} model!".format(
                 round(self.x / self.spatial_res, self.spatial_sigfigs),
@@ -39,28 +40,31 @@ class Mesh:
                 round(self.z / self.spatial_res, self.spatial_sigfigs)),
                 verbose=self.verbose)
             z_coords = np.arange(0, self.z + self.spatial_res, self.spatial_res)
-            mesh = np.meshgrid(x_coords, y_coords, z_coords)
-            nodes = list(zip(*(dim.flat for dim in mesh)))
-            cleaned_nodes = []
-            for i in nodes:
-                x = round(i[0], self.spatial_sigfigs)
-                y = round(i[1], self.spatial_sigfigs)
-                z = round(i[2], self.spatial_sigfigs)
-                cleaned_nodes.append((x, y, z))
+            for x in x_coords:
+                for y in y_coords:
+                    for z in z_coords:
+                        x = round(x, self.spatial_sigfigs)
+                        y = round(y, self.spatial_sigfigs)
+                        z = round(z, self.spatial_sigfigs)
+                        node = (x, y, z)
+                        nodes.append(node)
         else:
             console.nominal("Detected a 2-D system! Generating a {} x {} model!".format(
                 round(self.x / self.spatial_res, self.spatial_sigfigs),
                 round(self.y / self.spatial_res, self.spatial_sigfigs)),
                 verbose=self.verbose)
-            mesh = np.meshgrid(x_coords, y_coords)
-            nodes = list(zip(*(dim.flat for dim in mesh)))
-            cleaned_nodes = []
-            for i in nodes:
-                x = round(i[0], self.spatial_sigfigs)
-                y = round(i[1], self.spatial_sigfigs)
-                cleaned_nodes.append((x, y))
+            for x in x_coords:
+                for y in y_coords:
+                    x = round(x, self.spatial_sigfigs)
+                    y = round(y, self.spatial_sigfigs)
+                    node = (x, y)
+                    nodes.append(node)
         if df is not None:
-            df['coords'] = (str(list(i)) for i in nodes)
+            df['coords'] = nodes
         time_task = time.time() - t_start
         console.event("Finished generating model vertices! (task took {}s)".format(time_task), verbose=self.verbose)
-        return cleaned_nodes
+        return nodes
+
+
+    def get_spatial_sigfigs(self):
+        return self.spatial_sigfigs

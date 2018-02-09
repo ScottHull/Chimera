@@ -1,4 +1,5 @@
-from Chimera import mesh, box
+from Chimera import box
 
-m = mesh.Mesh(x=3, y=3, z=3, spatial_res=0.2, verbose=True).build()
-b = box.Box(mesh=m)
+b = box.Box(evolution_time=20, conduction=True, settling_mode='stokes terminal', radioactivity=True,
+            chemistry=True, verbose=True)
+c = b.build(x=5, y=5, z=5, spatial_res=1)

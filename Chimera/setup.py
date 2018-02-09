@@ -8,5 +8,7 @@ setup(
     author="Scott D. Hull",
     license="BSD 3-Clause License",
     packages=find_packages(),
-    ext_modules=cythonize("conduction.pyx"),
+    ext_modules=cythonize(
+        "neighbors.py",
+    ),
 )
