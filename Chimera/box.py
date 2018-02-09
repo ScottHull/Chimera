@@ -4,9 +4,11 @@ import numpy as np
 import time
 from . import console
 from . import mesh
-from . import neighbors
+# from . import neighbors
 import warnings
 warnings.filterwarnings('ignore')
+import pyximport; pyximport.install()
+from . import neighbors_cy
 
 class Box:
 
@@ -68,7 +70,7 @@ class Box:
             else:
                 console.nominal("Finding neighbor for ({}, {})".format(
                     coords[0], coords[1]), verbose=self.verbose)
-            n = neighbors.get_neighbors(verbose=self.verbose, coords=coords, array=arr, max_x=x, max_y=y, max_z=z,
+            n = neighbors_cy.get_neighbors(verbose=self.verbose, coords=coords, array=arr, max_x=x, max_y=y, max_z=z,
                                                spatial_res=spatial_res, spatial_sigfigs=spatial_sigfigs)
             x_plus.append(n[0])
             x_minus.append(n[1])

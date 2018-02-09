@@ -1,18 +1,17 @@
 
 
-def get_neighbor_index(list coord, list array):
+def get_neighbor_index(coord, array):
     index = array.index(coord)
     return index
 
-def get_neighbors(str verbose, list coords, list array, float spatial_res, float spatial_sigfigs,
-                  float max_x, float max_y, bool max_z_bool=False, float max_z=0.0, float min_x=0.0,
-                  float min_y=0.0, float min_z=0.0):
+def get_neighbors(verbose, coords, array, spatial_res, spatial_sigfigs, max_x, max_y,
+                  max_z=False, min_x=0.0, min_y=0.0, min_z=0.0):
 
-    if max_z_bool is not False:
+    if max_z is not False:
         x_coord, y_coord, z_coord = coords[0], coords[1], coords[2]
     else:
         x_coord, y_coord = coords[0], coords[1]
-    if max_z_bool is not False:
+    if max_z is not False:
         if min_x < x_coord < max_x:
             x_plus = round(x_coord + spatial_res, spatial_sigfigs)
             x_minus = round(x_coord - spatial_res, spatial_sigfigs)
