@@ -32,6 +32,7 @@ class Mesh:
         t_start = time.time()
         x_coords = np.arange(0, self.x + self.spatial_res, self.spatial_res)
         y_coords = np.arange(0, self.y + self.spatial_res, self.spatial_res)
+        z_vals = []
         nodes = []
         if self.dimensions is 3:
             console.nominal("Detected a 3-D system! Generating a {} x {} x {} model!".format(
@@ -46,6 +47,7 @@ class Mesh:
                         x = round(x, self.spatial_sigfigs)
                         y = round(y, self.spatial_sigfigs)
                         z = round(z, self.spatial_sigfigs)
+                        z_vals.append(z)
                         node = (x, y, z)
                         nodes.append(node)
         else:
@@ -57,10 +59,12 @@ class Mesh:
                 for y in y_coords:
                     x = round(x, self.spatial_sigfigs)
                     y = round(y, self.spatial_sigfigs)
+                    z_vals.append(y)
                     node = (x, y)
                     nodes.append(node)
         if df is not None:
             df['coords'] = nodes
+            df['z_vals'] = z_vals
         time_task = time.time() - t_start
         console.event("Finished generating model vertices! (task took {}s)".format(time_task), verbose=self.verbose)
         return nodes
