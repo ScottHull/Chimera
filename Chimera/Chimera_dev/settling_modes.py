@@ -8,6 +8,8 @@ def stokes_terminal(material_properties, radius, matrix_material, object):
     density_matrix = material_properties['density'][matrix_material]
     drag_coeff = material_properties['drag coefficient'][object]
     matrix_viscosity = material_properties['viscosity'][matrix_material]
+    matrix_therm_diffusivity = material_properties['thermal diffusivity'][matrix_material]
+    object_therm_diffusivity = material_properties['thermal diffusivity'][object]
     gravity = 9.81
     friction_coeff = (pi/6) * ((density_body - density_matrix) / density_matrix) * \
             (density_matrix / matrix_viscosity)**2 * (gravity * diameter**3)

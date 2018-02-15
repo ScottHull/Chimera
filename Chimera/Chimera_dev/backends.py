@@ -49,9 +49,3 @@ def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
     else:
         console.error("2D point prediction not implemented!", verbose=verbose)
 
-
-def predict_linear_index(z, spatial_res):
-    index = int(round(z / spatial_res))
-    return index
-
-

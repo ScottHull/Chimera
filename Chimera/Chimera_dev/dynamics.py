@@ -1,8 +1,7 @@
-from . import settling_modes
+from Chimera.Chimera_dev import settling_modes
 
 
-
-def settling(coord, mode, material_properties, spatial_sigfigs, heating=True):
+def settling(coord, mode, object, radius, material_properties, spatial_sigfigs, heating=True):
 
     dimension = len(coord)
     if dimension is 3:
@@ -20,4 +19,13 @@ def settling(coord, mode, material_properties, spatial_sigfigs, heating=True):
         )
 
     if mode is 'stokes_terminal':
+        velocity = settling_modes.stokes_terminal(
+            material_properties=material_properties,
+            matrix_material=None,
+            radius=radius,
+            object=object
+        )
+    else:
         pass
+
+

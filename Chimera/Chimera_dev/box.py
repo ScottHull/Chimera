@@ -1,16 +1,13 @@
-import os
 import sys
 import pandas as pd
 import numpy as np
 import time
-from . import console
-from . import mesh
-from . import backends
+from Chimera.Chimera_dev import mesh, console, backends, neighbors_cy
 # from . import neighbors
 import warnings
 warnings.filterwarnings('ignore')
 import pyximport; pyximport.install()
-from . import neighbors_cy
+
 
 class Box:
 
@@ -38,8 +35,6 @@ class Box:
         self.boundary = None
         self.id_val = 0
 
-    def update(self):
-        pass
 
     def box_info(self):
         df_memory = self.mesh.memory_usage(deep=True)
@@ -56,6 +51,7 @@ class Box:
         console.event("Constructing box...", verbose=self.verbose)
         console.nominal("Building mesh...", verbose=self.verbose)
         m = mesh.Mesh(spatial_res=spatial_res, x=x, y=y, z=z, verbose=self.verbose)
+        self.spatial_sigfigs = m.get_spatial_sigfigs()
         console.nominal("Assigning mesh to dataframe...", verbose=self.verbose)
         m.build(df=self.mesh)
         console.nominal("Exiting box construction...", verbose=self.verbose)
@@ -70,14 +66,14 @@ class Box:
         self.mesh['yminus_index'] = [0 for i in range(len(self.mesh['coords']))]
         self.mesh['zplus_index'] = [0 for i in range(len(self.mesh['coords']))]
         self.mesh['zminus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['temperature'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['temperature'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.objects['object'] = np.NAN
         self.objects['object_id'] = np.NAN
         self.objects['curr_loc'] = np.NAN
         self.objects['temperature'] = np.NAN
         self.objects['radius'] = np.NAN
         spatial_sigfigs = m.get_spatial_sigfigs()
-        neighbor_count = 1
+        neighbor_count = 0
         total_count = len(self.mesh['coords'])
         t_start = time.time()
         arr = self.mesh['coords'].tolist()
@@ -95,7 +91,7 @@ class Box:
                 console.nominal("Finding neighbor for ({}, {})".format(
                     coords[0], coords[1]), verbose=self.verbose)
             n = neighbors_cy.get_neighbors(verbose=self.verbose, coords=coords, array=arr, max_x=x, max_y=y, max_z=z,
-                                               spatial_res=spatial_res, spatial_sigfigs=spatial_sigfigs)
+                                           spatial_res=spatial_res, spatial_sigfigs=spatial_sigfigs)
             x_plus.append(n[0])
             x_minus.append(n[1])
             y_plus.append(n[2])
@@ -141,7 +137,7 @@ class Box:
         self.mesh['object_id'] = object_ids
         self.matrix = True
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
-                        time.time() - t_start), verbose=self.verbose)
+                                                                                            time.time() - t_start), verbose=self.verbose)
 
     def insert_boundary(self, temperature, depth_range, material='boundary'):
         console.event("Inserting boundary ({}) into the box!".format(material), verbose=self.verbose)
@@ -151,7 +147,6 @@ class Box:
         temperatures = self.mesh['temperature'].tolist()
         objects = self.mesh['object'].tolist()
         object_ids = self.mesh['object_id'].tolist()
-        len_coords = len(coords)
         for coord in coords:
             if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
                 index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
@@ -167,7 +162,7 @@ class Box:
         self.mesh['object_id'] = object_ids
         self.boundary = True
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
-                        time.time() - t_start), verbose=self.verbose)
+                                                                                              time.time() - t_start), verbose=self.verbose)
 
 
     def insert_object(self, material, temperature, radius, x, y, z=None):
@@ -188,7 +183,7 @@ class Box:
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
         objects.append(material)
         object_ids.append(backends.generate_object_id(object_type='object',
-                                                                id_val=self.id_val))
+                                                      id_val=self.id_val))
         radii.append(radius)
         locs.append(requested_coord)
         temperatures.append(temperature)
@@ -200,7 +195,7 @@ class Box:
         self.id_val += 1
         self.object = True
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
-                      time.time() - t_start), verbose=self.verbose)
+                                                                                            time.time() - t_start), verbose=self.verbose)
 
 
     def verify_box(self):

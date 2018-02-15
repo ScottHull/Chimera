@@ -1,4 +1,4 @@
-from . import backends
+from Chimera.Chimera_dev import backends
 
 def get_neighbor_index(coord, array, max_x, max_y, max_z, verbose, spatial_res):
     # index = array.index(coord)
