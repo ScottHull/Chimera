@@ -16,7 +16,9 @@ class Box:
 
     def __init__(self, evolution_time, conduction=True, settling_mode='stokes terminal',
                  radioactivity=True, chemistry=True, verbose=True):
-        self.space = pd.DataFrame({
+        self.mesh = pd.DataFrame({
+        })
+        self.objects = pd.DataFrame({
         })
         self.conduction = conduction
         self.settling_mode = settling_mode
@@ -40,7 +42,7 @@ class Box:
         pass
 
     def box_info(self):
-        df_memory = self.space.memory_usage(deep=True)
+        df_memory = self.mesh.memory_usage(deep=True)
         return df_memory
 
     def build(self, spatial_res, x, y, z=None):
@@ -55,25 +57,30 @@ class Box:
         console.nominal("Building mesh...", verbose=self.verbose)
         m = mesh.Mesh(spatial_res=spatial_res, x=x, y=y, z=z, verbose=self.verbose)
         console.nominal("Assigning mesh to dataframe...", verbose=self.verbose)
-        m.build(df=self.space)
+        m.build(df=self.mesh)
         console.nominal("Exiting box construction...", verbose=self.verbose)
         console.event("Box constructed!", verbose=self.verbose)
         console.event("Fetching nearest neighbors...", verbose=self.verbose)
-        self.space['object'] = ['NONE' for i in range(len(self.space['coords']))]
-        self.space['object_id'] = np.NAN
-        self.space['neighbors'] = np.NAN
-        self.space['xplus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['xminus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['yplus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['yminus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['zplus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['zminus_index'] = [0 for i in range(len(self.space['coords']))]
-        self.space['temperature'] = [0 for i in range(len(self.space['coords']))]
+        self.mesh['object'] = ['NONE' for i in range(len(self.mesh['coords']))]
+        self.mesh['object_id'] = np.NAN
+        self.mesh['neighbors'] = np.NAN
+        self.mesh['xplus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['xminus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['yplus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['yminus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['zplus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['zminus_index'] = [0 for i in range(len(self.mesh['coords']))]
+        self.mesh['temperature'] = [0 for i in range(len(self.mesh['coords']))]
+        self.objects['object'] = np.NAN
+        self.objects['object_id'] = np.NAN
+        self.objects['curr_loc'] = np.NAN
+        self.objects['temperature'] = np.NAN
+        self.objects['radius'] = np.NAN
         spatial_sigfigs = m.get_spatial_sigfigs()
         neighbor_count = 1
-        total_count = len(self.space['coords'])
+        total_count = len(self.mesh['coords'])
         t_start = time.time()
-        arr = self.space['coords'].tolist()
+        arr = self.mesh['coords'].tolist()
         x_plus = []
         x_minus = []
         y_plus = []
@@ -97,27 +104,27 @@ class Box:
                 z_plus.append(n[4])
                 z_minus.append(n[5])
             neighbor_count += 1
-        self.space['xplus_index'] = x_plus
-        self.space['xminus_index'] = x_minus
-        self.space['yplus_index'] = y_plus
-        self.space['yminus_index'] = y_minus
+        self.mesh['xplus_index'] = x_plus
+        self.mesh['xminus_index'] = x_minus
+        self.mesh['yplus_index'] = y_plus
+        self.mesh['yminus_index'] = y_minus
         if self.dimension is 3:
-            self.space['zplus_index'] = z_plus
-            self.space['zminus_index'] = z_minus
+            self.mesh['zplus_index'] = z_plus
+            self.mesh['zminus_index'] = z_minus
         console.event("Finished finding nearest neighbors! (task took {}s for {} points)".format(
                         time.time() - t_start, total_count),
                       verbose=self.verbose)
-        return self.space
+        return self.mesh
 
     def insert_matrix(self, material, temperature, depth_range):
         console.event("Inserting matrix ({}) into the box!".format(material), verbose=self.verbose)
         t_start = time.time()
-        subdf = self.space.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
-        self.space.drop(['z_vals'], axis=1)
+        subdf = self.mesh.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
+        self.mesh.drop(['z_vals'], axis=1)
         coords = subdf['coords'].tolist()
-        temperatures = self.space['temperature'].tolist()
-        objects = self.space['object'].tolist()
-        object_ids = self.space['object_id'].tolist()
+        temperatures = self.mesh['temperature'].tolist()
+        objects = self.mesh['object'].tolist()
+        object_ids = self.mesh['object_id'].tolist()
         len_coords = len(coords)
         for coord in coords:
             if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
@@ -129,9 +136,9 @@ class Box:
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
                 self.id_val += 1
-        self.space['temperature'] = temperatures
-        self.space['object'] = objects
-        self.space['object_id'] = object_ids
+        self.mesh['temperature'] = temperatures
+        self.mesh['object'] = objects
+        self.mesh['object_id'] = object_ids
         self.matrix = True
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                         time.time() - t_start), verbose=self.verbose)
@@ -139,11 +146,11 @@ class Box:
     def insert_boundary(self, temperature, depth_range, material='boundary'):
         console.event("Inserting boundary ({}) into the box!".format(material), verbose=self.verbose)
         t_start = time.time()
-        subdf = self.space.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
+        subdf = self.mesh.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
         coords = subdf['coords'].tolist()
-        temperatures = self.space['temperature'].tolist()
-        objects = self.space['object'].tolist()
-        object_ids = self.space['object_id'].tolist()
+        temperatures = self.mesh['temperature'].tolist()
+        objects = self.mesh['object'].tolist()
+        object_ids = self.mesh['object_id'].tolist()
         len_coords = len(coords)
         for coord in coords:
             if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
@@ -155,15 +162,15 @@ class Box:
                 object_ids[index] = backends.generate_object_id(object_type='boundary',
                                                                 id_val=self.id_val)
                 self.id_val += 1
-        self.space['temperature'] = temperatures
-        self.space['object'] = objects
-        self.space['object_id'] = object_ids
+        self.mesh['temperature'] = temperatures
+        self.mesh['object'] = objects
+        self.mesh['object_id'] = object_ids
         self.boundary = True
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                         time.time() - t_start), verbose=self.verbose)
 
 
-    def insert_object(self, material, temperature, x, y, z=None):
+    def insert_object(self, material, temperature, radius, x, y, z=None):
         console.event("Inserting object ({}) into the box!".format(material), verbose=self.verbose)
         if z is None and self.dimension is 3:
             console.error("Box dimension is 3 and z is not specified!", verbose=self.verbose)
@@ -173,34 +180,43 @@ class Box:
         elif self.dimension is 2 and z is None:
             requested_coord = (x, y)
         t_start = time.time()
-        coords = self.space['coords'].tolist()
-        temperatures = self.space['temperature'].tolist()
-        objects = self.space['object'].tolist()
-        object_ids = self.space['object_id'].tolist()
-        len_coords = len(coords)
-        index = coords.index(requested_coord)
+        objects = self.objects['object'].tolist()
+        object_ids = self.objects['object_id'].tolist()
+        temperatures = self.objects['temperature'].tolist()
+        radii = self.objects['radius'].tolist()
+        locs = self.objects['curr_loc'].tolist()
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
-        temperatures[index] = temperature
-        objects[index] = material
-        object_ids[index] = backends.generate_object_id(object_type='object',
-                                                                id_val=self.id_val)
+        objects.append(material)
+        object_ids.append(backends.generate_object_id(object_type='object',
+                                                                id_val=self.id_val))
+        radii.append(radius)
+        locs.append(requested_coord)
+        temperatures.append(temperature)
+        self.objects['object'] = objects
+        self.objects['object_id'] = object_ids
+        self.objects['temperature'] = temperatures
+        self.objects['radius'] = radii
+        self.objects['curr_loc'] = locs
         self.id_val += 1
-        self.space['temperature'] = temperatures
-        self.space['object'] = objects
-        self.space['object_id'] = object_ids
         self.object = True
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
                       time.time() - t_start), verbose=self.verbose)
 
 
     def verify_box(self):
-        objects = self.space['object'].tolist()
+        objects = self.mesh['object'].tolist()
         if 'NONE' in objects:
             console.error("WARNING! Not all coordinate spaces defined in box!", verbose=True)
+            self.mesh.drop(['z_vals'])
         else:
             console.event("Box verified!", verbose=True)
 
 
-
     def to_csv(self):
-        self.space.to_csv("space.csv")
+        self.mesh.to_csv("mesh.csv")
+        self.objects.to_csv("objects.csv")
+
+
+    def update(self, time=1, conduction=True, settling='stokes terminal'):
+        pass
+        
