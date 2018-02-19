@@ -7,9 +7,6 @@ import os
 import numpy as np
 import pandas as pd
 import time
-import matplotlib as mpl
-mpl.use('Qt5Agg')
-import matplotlib.pyplot as plt
 
 
 
@@ -144,6 +141,9 @@ class Line:
         console.event("mesh.csv now available in {}!".format(os.getcwd()), verbose=self.verbose)
         self.mesh.to_csv("mesh.csv")
 
+    def get_mesh(self):
+        return self.mesh
+
 
     def verify_box(self):
         objects = self.mesh['object'].tolist()
@@ -154,10 +154,11 @@ class Line:
 
 
     def update(self, auto_update=True, timestep=False):
+        t = time.time()
         while auto_update is True and self.evolution_time > 0:
             self.delta_time = backends.override_timestep(timestep=timestep, conductivities=self.conductivities,
                                                 spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
-            console.event("Model time at: {} (timestep: {})...".format(
+            console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             z = self.mesh['coords'].tolist()
             z_plus = self.mesh['zplus_index'].tolist()
@@ -165,24 +166,19 @@ class Line:
             object_ids = self.mesh['object_id'].tolist()
             temperatures = self.mesh['temperature'].tolist()
             conductivity = self.mesh['conductivity'].tolist()
-            console.event("Modeling thermal conduction...", verbose=self.verbose)
+            # console.nominal("Modeling thermal conduction...", verbose=self.verbose)
             t = time.time()
             conduction = heat.conduction_linear(z=z, z_plus_indeces=z_plus, z_minus_indeces=z_minus,
                                                 temperatures=temperatures, conductivity=conductivity,
                                                 spatial_res=self.spatial_res, delta_time=self.delta_time, object_ids=object_ids)
             self.mesh['temperature'] = conduction
-            console.event("Finished modeling conduction! (task took {}s)".format(time.time() - t), verbose=self.verbose)
+            console.nominal("Finished modeling conduction! (task took {}s)".format(time.time() - t), verbose=self.verbose)
 
 
             new_evolution_time = round(self.evolution_time - self.delta_time, self.spatial_sigfigs)
             self.evolution_time = new_evolution_time
 
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(self.mesh['coords'].tolist(), self.mesh['temperature'].tolist())
-        plt.show()
-        console.event("Model time is at 0!", verbose=self.verbose)
+        console.event("Model time is at 0! (task took {}s)".format(time.time() - t), verbose=self.verbose)
         return None
 
 
