@@ -166,8 +166,6 @@ class Line:
             object_ids = self.mesh['object_id'].tolist()
             temperatures = self.mesh['temperature'].tolist()
             conductivity = self.mesh['conductivity'].tolist()
-            # console.nominal("Modeling thermal conduction...", verbose=self.verbose)
-            t = time.time()
             conduction = heat.conduction_linear(z=z, z_plus_indeces=z_plus, z_minus_indeces=z_minus,
                                                 temperatures=temperatures, conductivity=conductivity,
                                                 spatial_res=self.spatial_res, delta_time=self.delta_time, object_ids=object_ids)
