@@ -31,7 +31,7 @@ def temperature_distribution(df):
     for object in object_dict.keys():
         min_coord = min(object_dict[object])
         max_coord = max(object_dict[object])
-        ax.axvspan(xmin=min_coord, xmax=max_coord, color=np.random.rand(3,), alpha=0.5, label=str(object))
+        ax.axvspan(xmin=min_coord, xmax=max_coord, color=np.random.rand(3,), alpha=0.4, label=str(object))
 
     ax.legend(loc='upper right')
 
