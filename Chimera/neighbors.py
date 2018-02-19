@@ -172,12 +172,30 @@ def get_neighbors(verbose, coords, array, spatial_res, spatial_sigfigs, max_x, m
 
 
 def get_linear_neighbor_index(coord, spatial_res, spatial_sigfigs):
-    index = round((coord / spatial_res), spatial_sigfigs)
+    """
+    Returns the index position of the specified coordinate in a linear model.
+    :param coord:
+    :param spatial_res:
+    :param spatial_sigfigs:
+    :return:
+    """
+
+    index = int(round((coord / spatial_res), spatial_sigfigs))
     return index
 
 
 def get_linear_neighbors(verbose, coord, spatial_res, spatial_sigfigs,
                   max_z, min_z=0.0):
+    """
+    Fetch the two neighboring coordinate index positions of the specified coordinate.
+    :param verbose:
+    :param coord:
+    :param spatial_res:
+    :param spatial_sigfigs:
+    :param max_z:
+    :param min_z:
+    :return:
+    """
 
     if float(coord) == float(max_z):
         z_plus = round(min_z, spatial_sigfigs)

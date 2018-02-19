@@ -31,6 +31,8 @@ class Mesh:
             nodes.append(round(k, self.spatial_sigfigs))
         if df is not None:
             df['coords'] = nodes
+        console.event("Finished generating model nodes! (task took {}s)".format(
+            t_start - time.time()), verbose=self.verbose)
         return nodes
 
     def get_spatial_sigfigs(self):
