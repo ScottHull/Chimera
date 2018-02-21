@@ -84,6 +84,7 @@ def nusselt_distrbution(layers, mesh, verbose=True):
 
     objects = mesh['object'].tolist()
     coordinates_full = mesh['coords'].tolist()
+    conductivities = mesh['conductivity'].tolist()
     dT_dts = mesh['dT_dt'].tolist()
     coordinates = []
     nusselt_nos = []
@@ -96,8 +97,8 @@ def nusselt_distrbution(layers, mesh, verbose=True):
         nusselt_nos.append(nusselt_nos_list[index][0])
         nusselt_nos.append(nusselt_nos_list[index][1])
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(111)
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(111)
     ax1.plot(coordinates, nusselt_nos, color='b', linewidth=2, linestyle='-')
     ax1.scatter(coordinates, nusselt_nos, color='b')
     ax1.set_xlabel("Depth (m)")
@@ -108,6 +109,19 @@ def nusselt_distrbution(layers, mesh, verbose=True):
     ax2.plot(coordinates_full, dT_dts, color='r', linewidth=1.4, linestyle='--')
     ax2.set_ylabel("Heat Flux (degK/s)")
     ax2.tick_params('y', colors='r')
+
+    fig2 = plt.figure()
+    ax3 = fig2.add_subplot(111)
+    ax3.plot(coordinates, nusselt_nos, color='b', linewidth=2, linestyle='-')
+    ax3.scatter(coordinates, nusselt_nos, color='b')
+    ax3.set_xlabel("Depth (m)")
+    ax3.set_ylabel("Nusselt Number")
+    ax3.tick_params('y', colors='b')
+
+    ax4 = ax3.twinx()
+    ax4.plot(coordinates_full, conductivities, color='m', linewidth=1.4, linestyle='--')
+    ax4.set_ylabel("Thermal Conductivity")
+    ax4.tick_params('y', colors='m')
 
     object_dict = {}
     for index, object in enumerate(objects):
@@ -121,10 +135,14 @@ def nusselt_distrbution(layers, mesh, verbose=True):
         max_coord = max(object_dict[object])
         color = np.random.rand(3, )
         ax1.axvspan(xmin=min_coord, xmax=max_coord, color=color, alpha=0.2, label=str(object))
+        ax3.axvspan(xmin=min_coord, xmax=max_coord, color=color, alpha=0.2, label=str(object))
 
     ax1.set_title("Temperature Distribution Over Depth")
     ax1.grid()
     ax1.legend(loc='lower left')
+    ax3.set_title("Conductivity Distribution Over Depth")
+    ax3.grid()
+    ax3.legend(loc='lower left')
 
     console.event("Finished constructing Nusselt distribution plot! (task took {}s)".format(
         time.time() - t), verbose=verbose)
