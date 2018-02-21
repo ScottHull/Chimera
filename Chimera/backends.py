@@ -1,6 +1,5 @@
 from Chimera.Chimera_dev import console
 
-
 def generate_object_id(object_type, id_val):
     """
     Generates object ID codes so that specific objects and materials can be tracked
@@ -13,8 +12,13 @@ def generate_object_id(object_type, id_val):
     :param matrix:
     :return: object_id
     """
-
     def random_gen(object_identifier, id_val):
+        """
+        Generates the ID.  Will be called continuously until a unique ID is returned.
+        :param object_identifier:
+        :param id_val:
+        :return:
+        """
         object_id = object_identifier + str(id_val)
 
         return object_id
@@ -23,8 +27,6 @@ def generate_object_id(object_type, id_val):
 
     if object_type == 'matrix':
         object_id = random_gen(object_identifier='B', id_val=id_val)
-        # while object_id in object_ids:
-        #     object_id = random_gen(object_identifier='B')
         return object_id
     elif object_type == 'object':
         object_id = random_gen(object_identifier='A', id_val=id_val)
@@ -35,8 +37,6 @@ def generate_object_id(object_type, id_val):
     else:
         object_id = random_gen(object_identifier='Z', id_val=id_val)
         return object_id
-
-
 
 def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
     """
@@ -58,7 +58,6 @@ def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
     else:
         console.error("2D point prediction not implemented!", verbose=verbose)
 
-
 def predict_linear_index(z, spatial_res):
     """
     Returns the index position of a coordinate specified in a one dimensional (1D) model.
@@ -66,11 +65,8 @@ def predict_linear_index(z, spatial_res):
     :param spatial_res:
     :return:
     """
-
     index = int(round(z / spatial_res))
     return index
-
-
 
 def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
     """
@@ -80,9 +76,11 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
     :return:
     """
     if timestep is False:
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # the explicit method timestep is only stable if:
         # deltaT <= (deltaX^2)/(2*(conductivity))
         # stability requires the maximum usage of conductivity to get the appropriate timestep
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         max_conductivity = max(conductivities)
         delta_time = (spatial_res**2) / (2 * (max_conductivity))
         delta_time = round(delta_time, spatial_sigfigs)
@@ -91,4 +89,27 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
         delta_time = timestep
         return delta_time
 
+def calculate_thermal_diffusivity(thermal_conductivity, density, specific_heat_capacity):
+    diffusivity = thermal_conductivity / (density * specific_heat_capacity)
+    return diffusivity
 
+def calculate_thermal_conductivity(thermal_diffusivity, density, specific_heat_capacity):
+    conductivity = thermal_diffusivity * density * specific_heat_capacity
+    return conductivity
+
+def convect_heat_transfer_coeff(heat_flux, temp_top, temp_bottom):
+    """
+    The heat transfer coefficient (or film coefficient/efficiency) is the ratio of heat flux to the temperature
+    gradient between the solid surface and the surrounding fluid area, k.
+    h = q/(delta_T), where:
+    q = heat flux
+    delta_T = temperature difference between the solid surface and the surrounding fluid area, k
+    :param heat_flux:
+    :param temp_difference:
+    :return:
+    """
+    q = heat_flux / (temp_top - temp_bottom)
+    return q
+
+def gravitational_accel(radius, mass):
+    pass

@@ -2,11 +2,7 @@ import numpy as np
 import time
 from . import console
 
-
 # This is currently for use in a 1D model...
-
-
-
 class Mesh:
 
     def __init__(self, spatial_res, z, verbose=True):
@@ -32,7 +28,7 @@ class Mesh:
         if df is not None:
             df['coords'] = nodes
         console.event("Finished generating model nodes! (task took {}s)".format(
-            t_start - time.time()), verbose=self.verbose)
+             time.time() - t_start), verbose=self.verbose)
         return nodes
 
     def get_spatial_sigfigs(self):
