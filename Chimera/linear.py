@@ -23,8 +23,16 @@ class Line:
             'temperature': [],
             'conductivity': [],
             'dT_dt': [],
+            'density': [],
+            'viscosity': []
         })
         self.objects = pd.DataFrame({
+            'object': [],
+            'object_id': [],
+            'coords': [],
+            'density': [],
+            'radius': [],
+            'velocity': [],
         })
         self.layers = pd.DataFrame({
             'object': [],
@@ -85,6 +93,8 @@ class Line:
         self.mesh['temperature'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.mesh['conductivity'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.mesh['dT_dt'] = [0.0 for i in range(len(self.mesh['coords']))]
+        self.mesh['density'] = [0.0 for i in range(len(self.mesh['coords']))]
+        self.mesh['viscosity'] = [0.0 for i in range(len(self.mesh['coords']))]
         console.event("Fetching nearest neighbors...", verbose=self.verbose)
         neighbor_count = 1
         total_count = len(self.mesh['coords'])
@@ -107,7 +117,8 @@ class Line:
             verbose=self.verbose)
         return self.mesh
 
-    def insert_matrix(self, material, conductivity, initial_temp, depth_range, temp_grad=None):
+    def insert_matrix(self, material, conductivity, initial_temp, initial_density,
+                      viscosity, depth_range, temp_grad=None):
         """
         Insert a matrix material into the linear model within a specified depth range.
         :param material:

@@ -8,7 +8,12 @@ from . import console
 
 
 def temperature_distribution(mesh, verbose=True):
-
+    """
+    Plots variables related to the temperature distribution of the linear Chimera model.
+    :param mesh:
+    :param verbose:
+    :return:
+    """
     console.event("Constructing temperature distribution plot...", verbose=verbose)
 
     t = time.time()
@@ -74,7 +79,13 @@ def temperature_distribution(mesh, verbose=True):
     plt.show()
 
 def nusselt_distrbution(layers, mesh, verbose=True):
-
+    """
+    Plots variables related to the Nusselt Number distribution of the linear Chimera model.
+    :param layers:
+    :param mesh:
+    :param verbose:
+    :return:
+    """
     console.event("Constructing Nusselt distribution plot...", verbose=verbose)
 
     t = time.time()

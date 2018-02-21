@@ -1,4 +1,4 @@
-from Chimera.Chimera_dev import console
+from . import console
 
 def generate_object_id(object_type, id_val):
     """
@@ -90,10 +90,26 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
         return delta_time
 
 def calculate_thermal_diffusivity(thermal_conductivity, density, specific_heat_capacity):
+    """
+    Returns thermal diffusivity from thermal conductivity.
+    alpha = k/(rho*c_p)
+    :param thermal_conductivity:
+    :param density:
+    :param specific_heat_capacity:
+    :return:
+    """
     diffusivity = thermal_conductivity / (density * specific_heat_capacity)
     return diffusivity
 
 def calculate_thermal_conductivity(thermal_diffusivity, density, specific_heat_capacity):
+    """
+    Returns thermal conductivity from thermal diffusivity.
+    k = alpha * c_p * rho
+    :param thermal_diffusivity:
+    :param density:
+    :param specific_heat_capacity:
+    :return:
+    """
     conductivity = thermal_diffusivity * density * specific_heat_capacity
     return conductivity
 
@@ -111,5 +127,5 @@ def convect_heat_transfer_coeff(heat_flux, temp_top, temp_bottom):
     q = heat_flux / (temp_top - temp_bottom)
     return q
 
-def gravitational_accel(radius, mass):
+def gravitational_acceleration(radius, mass):
     pass

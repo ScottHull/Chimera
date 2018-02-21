@@ -84,3 +84,11 @@ def nusselt(layers, mesh, spatial_res):
             nusselt_nos[index] = [0.0, 0,0]
 
     layers['nusselt'] = nusselt_nos
+
+def rayleigh(density, gravity, thermal_expansivity, thermal_conductivity, temp_upper_layer, temp_lower_layer,
+             length, viscosity, material_specific_heat):
+    # Ra = (rho * g * alpha * delta_T * d^3) / (mu * k)
+    delta_T = temp_lower_layer - temp_upper_layer
+    diffusivity = backends.calculate_thermal_diffusivity(thermal_conductivity=thermal_conductivity, density=density,
+                                                         specific_heat_capacity=material_specific_heat)
+    rayleigh = (density * gravity * thermal_expansivity * delta_T * (length**3)) / (viscosity * diffusivity)
