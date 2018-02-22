@@ -68,20 +68,19 @@ def nusselt(layers, mesh, spatial_res):
         z_min_temp = temperatures[z_min_index]
         z_max_temp = temperatures[z_max_index]
         if z_max_temp - z_min_temp != 0.0:
-            z_min_dT_dt = dT_dts[z_min_index]
             z_max_dT_dt = dT_dts[z_max_index]
+            z_min_dT_dt = dT_dts[z_min_index]
+            # z_max_conductivity = conductivities[z_max_index]
             z_min_conductivity = conductivities[z_min_index]
-            z_max_conductivity = conductivities[z_max_index]
+            # z_max_h = backends.convect_heat_transfer_coeff(heat_flux=z_max_dT_dt,
+            #                                                temp_bottom=z_min_temp, temp_top=z_max_temp)
             z_min_h = backends.convect_heat_transfer_coeff(heat_flux=z_min_dT_dt,
-                                                           temp_bottom=z_min_temp, temp_top=z_max_temp)
-            z_max_h = backends.convect_heat_transfer_coeff(heat_flux=z_max_dT_dt,
-                                                           temp_bottom=z_min_temp, temp_top=z_max_temp)
+                                                           temp_bottom=z_max_temp, temp_top=z_min_temp)
             characteristic_length = z_max_coord - z_min_coord
-            nusselt_top = (z_min_h * characteristic_length) / z_min_conductivity
-            nusselt_bottom = (z_max_h * characteristic_length) / z_max_conductivity
-            nusselt_nos[index] = [nusselt_bottom, nusselt_top]
+            nusselt = (z_min_h * characteristic_length) / z_min_conductivity
+            nusselt_nos[index] = nusselt
         else:
-            nusselt_nos[index] = [0.0, 0,0]
+            nusselt_nos[index] = 0.0
 
     layers['nusselt'] = nusselt_nos
 

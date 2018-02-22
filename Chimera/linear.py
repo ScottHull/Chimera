@@ -188,11 +188,13 @@ class Line:
         temperatures = self.mesh['temperature'].tolist()
         objects = self.mesh['object'].tolist()
         object_ids = self.mesh['object_id'].tolist()
+        layer_temperatures = []
         for coord in coords:
             if depth_range[0] <= coord <= depth_range[1]:
                 index = backends.predict_linear_index(z=coord, spatial_res=self.spatial_res)
                 console.nominal("Inserting boundary ({}) at {}...".format(material, coord), verbose=self.verbose)
                 temperatures[index] = temperature
+                layer_temperatures.append(temperature)
                 objects[index] = material
                 object_ids[index] = backends.generate_object_id(object_type='boundary',
                                                                 id_val=self.id_val)
@@ -200,6 +202,16 @@ class Line:
         self.mesh['temperature'] = temperatures
         self.mesh['object'] = objects
         self.mesh['object_id'] = object_ids
+        # layers_row = {'object': material,
+        #               'min_z': depth_range[0],
+        #               'max_z': depth_range[1],
+        #               'z_min_temp': layer_temperatures[0],
+        #               'z_max_temp': layer_temperatures[-1],
+        #               'min_z_dT_dt': 0.0,
+        #               'max_z_dT_dt': 0.0,
+        #               'nusselt': [],
+        #               }
+        # self.layers = self.layers.append(layers_row, ignore_index=True)
         self.boundary = True
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                                    time.time() - t_start), verbose=self.verbose)

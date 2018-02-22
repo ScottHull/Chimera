@@ -14,15 +14,15 @@ line.build(spatial_res=spatial_res, z=z)
 
 # insert matrix materials
 line.insert_matrix(material='test_material_1', initial_temp=2800, conductivity=0.5,
-                   temp_grad=0.2, initial_density=3, viscosity=1, depth_range=[10.0, 4000.0])
+                   temp_grad=0.2, initial_density=0, viscosity=0, depth_range=[10.0, 4000.0])
 line.insert_matrix(material='test_material_2', initial_temp=2000, conductivity=0.01,
-                   temp_grad=0.1, initial_density=3, viscosity=1, depth_range=[4005.0, 6000.0])
+                   temp_grad=0.1, initial_density=0, viscosity=0, depth_range=[4005.0, 6000.0])
 line.insert_matrix(material='test_material_3', initial_temp=1000, conductivity=0.8,
-                   temp_grad=0.1, initial_density=3, viscosity=1, depth_range=[6005.0, 7000.0])
+                   temp_grad=0.1, initial_density=0, viscosity=0, depth_range=[6005.0, 7000.0])
 line.insert_matrix(material='test_material_4', initial_temp=2000, conductivity=0.01,
-                   temp_grad=0.2, initial_density=3, viscosity=1, depth_range=[7005.0, 8000.0])
+                   temp_grad=0.2, initial_density=0, viscosity=0, depth_range=[7005.0, 8000.0])
 line.insert_matrix(material='test_material_5', initial_temp=2800, conductivity=0.5,
-                   temp_grad=0.1, initial_density=3, viscosity=1, depth_range=[8005.0, 9990.0])
+                   temp_grad=0.1, initial_density=0, viscosity=0, depth_range=[8005.0, 9990.0])
 
 # insert boundary layers
 line.insert_boundary(temperature=3000, depth_range=[0.0, 5.0])

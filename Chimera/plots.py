@@ -100,13 +100,10 @@ def nusselt_distrbution(layers, mesh, verbose=True):
     coordinates = []
     nusselt_nos = []
     coordinates_min_z = layers['min_z'].tolist()
-    coordinates_max_z = layers['max_z'].tolist()
     nusselt_nos_list = layers['nusselt'].tolist()
     for index, coord in enumerate(coordinates_min_z):
         coordinates.append(coord)
-        coordinates.append(coordinates_max_z[index])
-        nusselt_nos.append(nusselt_nos_list[index][0])
-        nusselt_nos.append(nusselt_nos_list[index][1])
+        nusselt_nos.append(nusselt_nos_list[index])
 
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
