@@ -24,9 +24,9 @@ line.build(spatial_res=spatial_res, z=z)
 # line.insert_matrix(material='test_material_5', initial_temp=2800, conductivity=0.5,
 #                    temp_grad=0.1, initial_density=0, viscosity=0, depth_range=[8005.0, 9990.0])
 
-line.insert_matrix(material="0.1", initial_temp=2000, conductivity=80,
+line.insert_matrix(material="Top", initial_temp=2000, conductivity=80,
                    temp_grad=0.2, initial_density=0, viscosity=0, depth_range=[40.0, 50020.0])
-line.insert_matrix(material="1.0", initial_temp=2249, conductivity=40,
+line.insert_matrix(material="Bottom", initial_temp=2249, conductivity=40,
                    temp_grad=0.2, initial_density=0, viscosity=0, depth_range=[50040.0, 99960.0])
 
 
