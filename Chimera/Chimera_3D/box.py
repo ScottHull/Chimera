@@ -2,7 +2,7 @@ import sys
 import pandas as pd
 import numpy as np
 import time
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots
 import warnings
 warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
@@ -73,7 +73,7 @@ class Box:
         self.mesh['conductivity'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.objects['object'] = np.NAN
         self.objects['object_id'] = np.NAN
-        self.objects['curr_loc'] = np.NAN
+        self.objects['coords'] = np.NAN
         self.objects['temperature'] = np.NAN
         self.objects['radius'] = np.NAN
         self.objects['conductivity'] = np.NAN
@@ -215,7 +215,7 @@ class Box:
         object_ids = self.objects['object_id'].tolist()
         temperatures = self.objects['temperature'].tolist()
         radii = self.objects['radius'].tolist()
-        locs = self.objects['curr_loc'].tolist()
+        locs = self.objects['coords'].tolist()
         conductivities = self.objects['conductivity'].tolist()
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
         objects.append(material)
@@ -229,7 +229,7 @@ class Box:
         self.objects['object_id'] = object_ids
         self.objects['temperature'] = temperatures
         self.objects['radius'] = radii
-        self.objects['curr_loc'] = locs
+        self.objects['coords'] = locs
         self.objects['conductivity'] = conductivities
         self.id_val += 1
         self.object = True
@@ -279,9 +279,24 @@ class Box:
                                                      spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
         # will run model to completion while the remaining time is above 0
         while auto_update is True and self.evolution_time > 0:
+            object_objects = self.objects['object'].tolist()
+            object_object_ids = self.objects['object_id'].tolist()
+            object_temperatures = self.objects['temperature'].tolist()
+            object_coords = self.objects['coords'].tolist()
+            object_conductivities = self.objects['conductivity'].tolist()
+            object_radii = self.objects['radius'].tolist()
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             temperatures = self.mesh['temperature'].tolist()
+            # perform actions on objects inside of the model but independent of the mesh
+            for object_index, object in enumerate(object_objects):
+                coord = object_coords[object_index]
+                cell = backends.interpolate_cell(coord=coord, spatial_res=self.spatial_res,
+                                                 spatial_sigfigs=self.spatial_sigfigs, max_x=self.max_x,
+                                                 max_y=self.max_y, max_z=self.max_z, x_plus=x_plus, x_minus=x_minus,
+                                                 y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
+                                                 verbose=self.verbose)
+                plots.plot_cell(object_coord=coord, vertex_indeces=cell, mesh_coords=coords)
             # finite central difference conductivity across entire box
             conduction = heat.conduction(coords=coords, x_plus_indeces=x_plus, x_minus_indeces=x_minus,
                                         y_plus_indeces=y_plus, y_minus_indeces=y_minus, z_plus_indeces=z_plus,
