@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from Chimera.Chimera_dev import console
+from Chimera.Chimera_3D import console
 
 
 class Mesh:

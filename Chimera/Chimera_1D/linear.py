@@ -272,17 +272,17 @@ class Line:
         :return:
         """
         t = time.time()
+        z = self.mesh['coords'].tolist()
+        z_plus = self.mesh['zplus_index'].tolist()
+        z_minus = self.mesh['zminus_index'].tolist()
+        object_ids = self.mesh['object_id'].tolist()
+        conductivity = self.mesh['conductivity'].tolist()
         while auto_update is True and self.evolution_time > 0:
             self.delta_time = backends.override_timestep(timestep=timestep, conductivities=self.conductivities,
                                                 spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
-            z = self.mesh['coords'].tolist()
-            z_plus = self.mesh['zplus_index'].tolist()
-            z_minus = self.mesh['zminus_index'].tolist()
-            object_ids = self.mesh['object_id'].tolist()
             temperatures = self.mesh['temperature'].tolist()
-            conductivity = self.mesh['conductivity'].tolist()
             conduction = heat.conduction_linear(z=z, z_plus_indeces=z_plus, z_minus_indeces=z_minus,
                                         temperatures=temperatures, conductivity=conductivity,
                                         spatial_res=self.spatial_res, delta_time=self.delta_time, object_ids=object_ids)
