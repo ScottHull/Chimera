@@ -2,7 +2,7 @@ import sys
 import pandas as pd
 import numpy as np
 import time
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, settling_modes
 import warnings
 warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
@@ -34,6 +34,7 @@ class Box:
         self.boundary = None
         self.id_val = 0
         self.conductivities = []
+        self.plots = plots.plots()
 
     def build(self, spatial_res, x, y, z=None):
         """
@@ -71,12 +72,16 @@ class Box:
         self.mesh['zminus_index'] = [0 for i in range(len(self.mesh['coords']))]
         self.mesh['temperature'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.mesh['conductivity'] = [0.0 for i in range(len(self.mesh['coords']))]
+        self.mesh['viscosity'] = [0.0 for i in range(len(self.mesh['coords']))]
+        self.mesh['density'] = [0.0 for i in range(len(self.mesh['coords']))]
         self.objects['object'] = np.NAN
         self.objects['object_id'] = np.NAN
         self.objects['coords'] = np.NAN
         self.objects['temperature'] = np.NAN
         self.objects['radius'] = np.NAN
         self.objects['conductivity'] = np.NAN
+        self.objects['density'] = np.NAN
+        self.objects['velocity'] = np.NAN
         self.x_coords = np.NAN
         self.y_coords = np.NAN
         self.z_coords = np.NAN
@@ -120,7 +125,7 @@ class Box:
                       verbose=self.verbose)
         return self.mesh
 
-    def insert_matrix(self, material, temperature, conductivity, depth_range):
+    def insert_matrix(self, material, temperature, conductivity, density, viscosity, depth_range):
         """
         Insert a matrix into the model.
         :param material:
@@ -138,6 +143,8 @@ class Box:
         objects = self.mesh['object'].tolist()
         object_ids = self.mesh['object_id'].tolist()
         conductivities = self.mesh['conductivity'].tolist()
+        densities = self.mesh['density'].tolist()
+        viscosities = self.mesh['viscosity'].tolist()
         self.conductivities.append(conductivity)
         len_coords = len(coords)
         for coord in coords:
@@ -148,12 +155,17 @@ class Box:
                 temperatures[index] = temperature
                 conductivities[index] = conductivity
                 objects[index] = material
+                densities[index] = density
+                viscosities[index] = viscosity
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
                 self.id_val += 1
         self.mesh['temperature'] = temperatures
         self.mesh['object'] = objects
         self.mesh['object_id'] = object_ids
+        self.mesh['density'] = densities
+        self.mesh['viscosity'] = viscosities
+        self.mesh['conductivity'] = conductivities
         self.matrix = True
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                                 time.time() - t_start), verbose=self.verbose)
@@ -190,7 +202,7 @@ class Box:
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                                                                                               time.time() - t_start), verbose=self.verbose)
 
-    def insert_object(self, material, temperature, radius, conductivity, x, y, z=None):
+    def insert_object(self, material, temperature, radius, conductivity, density, x, y, z=None):
         """
         Insert an object in the the objects dataframe.
         :param material:
@@ -216,6 +228,8 @@ class Box:
         temperatures = self.objects['temperature'].tolist()
         radii = self.objects['radius'].tolist()
         locs = self.objects['coords'].tolist()
+        densities = self.objects['density'].tolist()
+        velocities = self.objects['velocity'].tolist()
         conductivities = self.objects['conductivity'].tolist()
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
         objects.append(material)
@@ -225,12 +239,16 @@ class Box:
         locs.append(requested_coord)
         temperatures.append(temperature)
         conductivities.append(conductivity)
+        densities.append(density)
+        velocities.append(0.0)
         self.objects['object'] = objects
         self.objects['object_id'] = object_ids
         self.objects['temperature'] = temperatures
         self.objects['radius'] = radii
         self.objects['coords'] = locs
         self.objects['conductivity'] = conductivities
+        self.objects['density'] = densities
+        self.objects['velocity'] = velocities
         self.id_val += 1
         self.object = True
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
@@ -256,7 +274,7 @@ class Box:
         self.mesh.to_csv("mesh.csv", index=False)
         self.objects.to_csv("objects.csv", index=False)
 
-    def update(self, auto_update=True, timestep=False):
+    def update(self, auto_update=True, timestep=False, animate_model=False):
         """
         Update the model over one time step. Has the ability to run the model to completion.
         :param auto_update:
@@ -274,6 +292,8 @@ class Box:
         z_minus = self.mesh['zminus_index'].tolist()
         object_ids = self.mesh['object_id'].tolist()
         conductivity = self.mesh['conductivity'].tolist()
+        viscosity = self.mesh['viscosity'].tolist()
+        density = self.mesh['density'].tolist()
         # calculate the timestep based on the maximum conductivity of material in the box
         self.delta_time = backends.override_timestep(timestep=timestep, conductivities=self.conductivities,
                                                      spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
@@ -282,21 +302,41 @@ class Box:
             object_objects = self.objects['object'].tolist()
             object_object_ids = self.objects['object_id'].tolist()
             object_temperatures = self.objects['temperature'].tolist()
+            object_densities = self.objects['density'].tolist()
             object_coords = self.objects['coords'].tolist()
+            object_velocities = self.objects['velocity'].tolist()
             object_conductivities = self.objects['conductivity'].tolist()
             object_radii = self.objects['radius'].tolist()
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             temperatures = self.mesh['temperature'].tolist()
-            # perform actions on objects inside of the model but independent of the mesh
+            #  perform actions on objects inside of the model but independent of the mesh
             for object_index, object in enumerate(object_objects):
-                coord = object_coords[object_index]
+                object_id = object_object_ids[object_index]  # get the current object id
+                coord = object_coords[object_index]  # get the current object coordinate
+                #  interpolate to find the cell in which the object exists
                 cell = backends.interpolate_cell(coord=coord, spatial_res=self.spatial_res,
                                                  spatial_sigfigs=self.spatial_sigfigs, max_x=self.max_x,
                                                  max_y=self.max_y, max_z=self.max_z, x_plus=x_plus, x_minus=x_minus,
                                                  y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
                                                  verbose=self.verbose)
-                plots.plot_cell(object_coord=coord, nearest_coord=cell[0], vertex_indeces=cell[1], mesh_coords=coords)
+                #  calculate the object's settling velocity
+                velocity = settling_modes.stokes_terminal(density=object_densities[object_index], density_matrix=density[cell[0]],
+                                                          drag_coeff=2, radius=object_radii[object_index],
+                                                          viscosity_matrix=viscosity[cell[0]])
+                #  get the object's new coordinates based on the object's velocity
+                updated_coords = backends.update_position(coord=coord, velocity=velocity, delta_time=self.delta_time)
+                console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
+                    object, object_id, coord, updated_coords, velocity), verbose=self.verbose)
+                #  update the dataframes with the new data
+                object_velocities[object_index] = velocity
+                object_coords[object_index] = updated_coords
+                self.objects['coords'] = object_coords
+                self.objects['velocity'] = object_velocities
+                self.plots.plot_cell(object_coord=coord, nearest_coord=cell[0], vertex_indeces=cell[1], mesh_coords=coords,
+                            max_x=self.max_x, max_y=self.max_y, max_z=self.max_z, spatial_res=self.spatial_res,
+                                     model_time=self.evolution_time, save=animate_model, show=False)
+
             # finite central difference conductivity across entire box
             conduction = heat.conduction(coords=coords, x_plus_indeces=x_plus, x_minus_indeces=x_minus,
                                         y_plus_indeces=y_plus, y_minus_indeces=y_minus, z_plus_indeces=z_plus,
@@ -311,4 +351,6 @@ class Box:
             self.evolution_time = new_evolution_time
 
         console.event("Model time is at 0! (task took {}s)".format(time.time() - t), verbose=self.verbose)
+        if animate_model is True:
+            self.plots.animate(initial_time=self.initial_time)
         return None

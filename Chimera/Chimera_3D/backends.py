@@ -177,3 +177,18 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
                                            max_z=max_z, spatial_res=spatial_res, verbose=verbose))
 
     return nearest_index, cell_indeces
+
+def update_position(coord, velocity, delta_time):
+    """
+    Accepts 3D coord, 3D velcoity vectors, and the timestep.  Returns new coordinate position.
+    :param coord:
+    :param velocity:
+    :param delta_time:
+    :return:
+    """
+    x, y, z = coord[0], coord[1], coord[2]
+    x_vel, y_vel, z_vel = velocity[0], velocity[1], velocity[2]
+    change_x, change_y, change_z = (x_vel * delta_time), (y_vel * delta_time), (z_vel * delta_time)
+    new_x, new_y, new_z = (x + change_x), (y + change_y), (z + change_z)
+    new_coord = (new_x, new_y, new_z)
+    return new_coord
