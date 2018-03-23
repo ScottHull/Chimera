@@ -296,7 +296,7 @@ class Box:
                                                  max_y=self.max_y, max_z=self.max_z, x_plus=x_plus, x_minus=x_minus,
                                                  y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
                                                  verbose=self.verbose)
-                plots.plot_cell(object_coord=coord, vertex_indeces=cell, mesh_coords=coords)
+                plots.plot_cell(object_coord=coord, nearest_coord=cell[0], vertex_indeces=cell[1], mesh_coords=coords)
             # finite central difference conductivity across entire box
             conduction = heat.conduction(coords=coords, x_plus_indeces=x_plus, x_minus_indeces=x_minus,
                                         y_plus_indeces=y_plus, y_minus_indeces=y_minus, z_plus_indeces=z_plus,

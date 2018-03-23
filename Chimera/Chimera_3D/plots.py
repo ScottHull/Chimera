@@ -8,20 +8,20 @@ import numpy as np
 import time
 from . import console
 
-# def plot_cell(object_coord, vertex_indeces, mesh_coords):
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection='3d')
-#     r = [-1, 1]
-#     cell_verteces = []
-#     for i in vertex_indeces:
-#         cell_verteces.append(list(mesh_coords[i]))
-#     points = np.array(cell_verteces)
-#     X, Y = np.meshgrid(r, r)
-#     ax.plot_surface(X, Y, 1, alpha=0.5)
-#     ax.plot_surface(X, Y, -1, alpha=0.5)
-#     ax.plot_surface(X, -1, Y, alpha=0.5)
-#     ax.plot_surface(X, 1, Y, alpha=0.5)
-#     ax.plot_surface(1, X, Y, alpha=0.5)
-#     ax.plot_surface(-1, X, Y, alpha=0.5)
-#     ax.scatter3D(points[:, 0], points[:, 1], points[:, 2])
-#     fig.show()
+def plot_cell(object_coord, nearest_coord, vertex_indeces, mesh_coords):
+    # print(vertex_indeces)
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    x, y, z = object_coord[0], object_coord[1], object_coord[2]
+    cell_verteces = []
+    for i in vertex_indeces:
+        cell_verteces.append(list(mesh_coords[i]))
+    ax.scatter3D(x, y, z, color='r')
+    for i in cell_verteces:
+        x, y, z = i[0], i[1], i[2]
+        ax.scatter3D(x, y, z, color='b')
+    ax.scatter3D(mesh_coords[nearest_coord][0], mesh_coords[nearest_coord][1], mesh_coords[nearest_coord][2], color='y')
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+    plt.show()

@@ -77,27 +77,103 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
         delta_time = timestep
         return delta_time
 
-def arbitrary_round(coord, spatial_res, spatial_sigfigs):
-    x, y, z = coord[0], coord[1], coord[2]
-    nearest_x = round(round(x / spatial_res) * spatial_res, spatial_sigfigs)
-    nearest_y = round(round(y / spatial_res) * spatial_res, spatial_sigfigs)
-    nearest_z = round(round(z / spatial_res) * spatial_res, spatial_sigfigs)
-    return nearest_x, nearest_y, nearest_z
-
 def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x_plus, x_minus, y_plus, y_minus,
                      z_plus, z_minus, verbose=True):
+
+    def arbitrary_round(coord, spatial_res, spatial_sigfigs):
+        x, y, z = coord[0], coord[1], coord[2]
+        nearest_x = round(round(x / spatial_res) * spatial_res, spatial_sigfigs)
+        nearest_y = round(round(y / spatial_res) * spatial_res, spatial_sigfigs)
+        nearest_z = round(round(z / spatial_res) * spatial_res, spatial_sigfigs)
+        return nearest_x, nearest_y, nearest_z
+
+    def get_neighbors(distance, nearest_coord, spatial_res, spatial_sigfigs):
+        if distance < 0:
+            minus_coord = round(nearest_coord - spatial_res, spatial_sigfigs)
+            return minus_coord
+        elif distance > 0:
+            plus_coord = round(nearest_coord + spatial_res, spatial_sigfigs)
+            return plus_coord
+        else:
+            return nearest_coord
+
+    x, y, z = coord[0], coord[1], coord[2]
     nearest_x, nearest_y, nearest_z = arbitrary_round(coord=coord, spatial_res=spatial_res,
                                                       spatial_sigfigs=spatial_sigfigs)
     nearest_coord = (nearest_x, nearest_y, nearest_z)
     nearest_index = predict_index(coord=nearest_coord, max_x=max_x, max_y=max_y,
                                         max_z=max_z, spatial_res=spatial_res, verbose=verbose)
-    x_plus = x_plus[nearest_index]
-    x_minus = x_minus[nearest_index]
-    y_plus = y_plus[nearest_index]
-    y_minus = y_minus[nearest_index]
-    z_plus = z_plus[nearest_index]
-    z_minus = z_minus[nearest_index]
+    distance_x, distance_y, distance_z = (x - nearest_x), (y - nearest_y), (z - nearest_z)
+    x_interpolate = get_neighbors(distance=distance_x, nearest_coord=nearest_x, spatial_res=spatial_res,
+                                  spatial_sigfigs=spatial_sigfigs)
+    y_interpolate = get_neighbors(distance=distance_y, nearest_coord=nearest_y, spatial_res=spatial_res,
+                                  spatial_sigfigs=spatial_sigfigs)
+    z_interpolate = get_neighbors(distance=distance_z, nearest_coord=nearest_z, spatial_res=spatial_res,
+                                  spatial_sigfigs=spatial_sigfigs)
+    if x_interpolate < nearest_x:
+        x_plus_coord = nearest_x
+        x_minus_coord = x_interpolate
+    elif x_interpolate > nearest_x:
+        x_plus_coord = x_interpolate
+        x_minus_coord = nearest_x
+    elif x_interpolate <= 0.0:
+        x_plus_coord = nearest_x
+        x_minus_coord = max_x
+    elif x_interpolate >= max_x:
+        x_plus_coord = round(0.0, spatial_sigfigs)
+        x_minus_coord = nearest_x
+    else:
+        x_plus_coord = nearest_x
+        x_minus_coord = nearest_x
 
-    # returns the ordered index values, as follows:
-    # nearest_index, x_plus, x_minus, y_plus, y_minus, z_plus, z_minus
-    return nearest_index, x_plus, x_minus, y_plus, y_minus, z_plus, z_minus
+    if y_interpolate < nearest_y:
+        y_plus_coord = nearest_y
+        y_minus_coord = y_interpolate
+    elif y_interpolate > nearest_y:
+        y_plus_coord = y_interpolate
+        y_minus_coord = nearest_y
+    elif y_interpolate <= 0.0:
+        y_plus_coord = nearest_y
+        y_minus_coord = max_y
+    elif y_interpolate >= max_y:
+        y_plus_coord = round(0.0, spatial_sigfigs)
+        y_minus_coord = nearest_y
+    else:
+        y_plus_coord = nearest_y
+        y_minus_coord = nearest_y
+
+    if z_interpolate < nearest_z:
+        z_plus_coord = nearest_z
+        z_minus_coord = z_interpolate
+    elif z_interpolate > nearest_z:
+        z_plus_coord = z_interpolate
+        z_minus_coord = nearest_z
+    elif z_interpolate <= 0.0:
+        z_plus_coord = nearest_z
+        z_minus_coord = max_z
+    elif z_interpolate >= max_z:
+        z_plus_coord = round(0.0, spatial_sigfigs)
+        z_minus_coord = nearest_z
+    else:
+        z_plus_coord = nearest_z
+        z_minus_coord = nearest_z
+
+    possible_verteces = [
+        (x_minus_coord, y_plus_coord, z_plus_coord),
+        (x_minus_coord, y_plus_coord, z_minus_coord),
+        (x_minus_coord, y_minus_coord, z_plus_coord),
+        (x_minus_coord, y_minus_coord, z_minus_coord),
+        (x_plus_coord, y_plus_coord, z_plus_coord),
+        (x_plus_coord, y_plus_coord, z_minus_coord),
+        (x_plus_coord, y_minus_coord, z_plus_coord),
+        (x_plus_coord, y_minus_coord, z_minus_coord),
+    ]
+
+    cell_verteces = sorted(set(possible_verteces))
+
+    cell_indeces = []
+    for i in cell_verteces:
+        cell_indeces.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
+                                           max_z=max_z, spatial_res=spatial_res, verbose=verbose))
+
+    return nearest_index, cell_indeces
