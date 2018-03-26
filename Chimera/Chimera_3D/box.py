@@ -3,8 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, settling_modes
-import warnings
-warnings.filterwarnings('ignore')
+import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
 
@@ -54,48 +53,33 @@ class Box:
         self.spatial_res = spatial_res
         console.event("Constructing box...", verbose=self.verbose)
         console.nominal("Building mesh...", verbose=self.verbose)
+        # instantiate the mesh
         m = mesh.Mesh(spatial_res=spatial_res, x=x, y=y, z=z, verbose=self.verbose)
         self.spatial_sigfigs = m.get_spatial_sigfigs()
         console.nominal("Assigning mesh to dataframe...", verbose=self.verbose)
+        # construct the mesh
         m.build(df=self.mesh)
         console.nominal("Exiting box construction...", verbose=self.verbose)
         console.event("Box constructed!", verbose=self.verbose)
         console.event("Fetching nearest neighbors...", verbose=self.verbose)
-        self.mesh['object'] = ['NONE' for i in range(len(self.mesh['coords']))]
-        self.mesh['object_id'] = np.NAN
-        self.mesh['neighbors'] = np.NAN
-        self.mesh['xplus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['xminus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['yplus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['yminus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['zplus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['zminus_index'] = [0 for i in range(len(self.mesh['coords']))]
-        self.mesh['temperature'] = [0.0 for i in range(len(self.mesh['coords']))]
-        self.mesh['conductivity'] = [0.0 for i in range(len(self.mesh['coords']))]
-        self.mesh['viscosity'] = [0.0 for i in range(len(self.mesh['coords']))]
-        self.mesh['density'] = [0.0 for i in range(len(self.mesh['coords']))]
-        self.objects['object'] = np.NAN
-        self.objects['object_id'] = np.NAN
-        self.objects['coords'] = np.NAN
-        self.objects['temperature'] = np.NAN
-        self.objects['radius'] = np.NAN
-        self.objects['conductivity'] = np.NAN
-        self.objects['density'] = np.NAN
-        self.objects['velocity'] = np.NAN
+        coords_range = range(len(self.mesh['coords']))
+        # create all of the columns for the instantiated dataframes
+        backends.set_columns(mesh_df=self.mesh, object_df=self.objects, coords_range=coords_range)
         self.x_coords = np.NAN
         self.y_coords = np.NAN
         self.z_coords = np.NAN
-        spatial_sigfigs = m.get_spatial_sigfigs()
+        spatial_sigfigs = m.get_spatial_sigfigs()  # find the number of sigfigs defined by the spatial resolution
         neighbor_count = 0
         total_count = len(self.mesh['coords'])
         t_start = time.time()
-        arr = self.mesh['coords'].tolist()
+        arr = self.mesh['coords'].tolist()  # an array of all the mesh coordinates
         x_plus = []
         x_minus = []
         y_plus = []
         y_minus = []
         z_plus = []
         z_minus = []
+        # find nearest neighbors in 3D
         for coords in arr:
             if self.dimension is 3:
                 console.nominal("Finding neighbor for ({}, {}, {}) ({}/{} points)".format(
@@ -147,6 +131,8 @@ class Box:
         viscosities = self.mesh['viscosity'].tolist()
         self.conductivities.append(conductivity)
         len_coords = len(coords)
+        # insert the matrix into coordinate positions defined by the user's z-range
+        # TODO: we can limit recursion time by using the index prediction equation here
         for coord in coords:
             if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
                 index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
@@ -241,6 +227,8 @@ class Box:
         conductivities.append(conductivity)
         densities.append(density)
         velocities.append(0.0)
+        object_headers = [self.objects.columns.values]
+        self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
         self.objects['object_id'] = object_ids
         self.objects['temperature'] = temperatures
@@ -249,6 +237,9 @@ class Box:
         self.objects['conductivity'] = conductivities
         self.objects['density'] = densities
         self.objects['velocity'] = velocities
+        self.objects['nearest_index'] = np.NAN
+        self.objects['cell_indices'] = np.NAN
+        self.objects['cell_vertices'] = np.NAN
         self.id_val += 1
         self.object = True
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
@@ -299,44 +290,22 @@ class Box:
                                                      spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
         # will run model to completion while the remaining time is above 0
         while auto_update is True and self.evolution_time > 0:
-            object_objects = self.objects['object'].tolist()
-            object_object_ids = self.objects['object_id'].tolist()
-            object_temperatures = self.objects['temperature'].tolist()
-            object_densities = self.objects['density'].tolist()
-            object_coords = self.objects['coords'].tolist()
-            object_velocities = self.objects['velocity'].tolist()
-            object_conductivities = self.objects['conductivity'].tolist()
-            object_radii = self.objects['radius'].tolist()
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             temperatures = self.mesh['temperature'].tolist()
             #  perform actions on objects inside of the model but independent of the mesh
-            for object_index, object in enumerate(object_objects):
-                object_id = object_object_ids[object_index]  # get the current object id
-                coord = object_coords[object_index]  # get the current object coordinate
-                #  interpolate to find the cell in which the object exists
-                cell = backends.interpolate_cell(coord=coord, spatial_res=self.spatial_res,
-                                                 spatial_sigfigs=self.spatial_sigfigs, max_x=self.max_x,
-                                                 max_y=self.max_y, max_z=self.max_z, x_plus=x_plus, x_minus=x_minus,
-                                                 y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
-                                                 verbose=self.verbose)
-                #  calculate the object's settling velocity
-                velocity = settling_modes.stokes_terminal(density=object_densities[object_index], density_matrix=density[cell[0]],
-                                                          drag_coeff=2, radius=object_radii[object_index],
-                                                          viscosity_matrix=viscosity[cell[0]])
-                #  get the object's new coordinates based on the object's velocity
-                updated_coords = backends.update_position(coord=coord, velocity=velocity, delta_time=self.delta_time)
-                console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
-                    object, object_id, coord, updated_coords, velocity), verbose=self.verbose)
-                #  update the dataframes with the new data
-                object_velocities[object_index] = velocity
-                object_coords[object_index] = updated_coords
-                self.objects['coords'] = object_coords
-                self.objects['velocity'] = object_velocities
-                self.plots.plot_cell(object_coord=coord, nearest_coord=cell[0], vertex_indeces=cell[1], mesh_coords=coords,
-                            max_x=self.max_x, max_y=self.max_y, max_z=self.max_z, spatial_res=self.spatial_res,
-                                     model_time=self.evolution_time, save=animate_model, show=False)
-
+            object_coords, nearest_indices, cell_indices = backends.object_actions(mesh_df=self.mesh, objects_df=self.objects,
+                                    spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
+                                    evolution_time=self.evolution_time, delta_time=self.delta_time,
+                                    initial_time=self.initial_time, matrix_densities=density,
+                                    matrix_viscosities=viscosity, x_plus=x_plus, x_minus=x_minus, y_plus=y_plus,
+                                    y_minus=y_minus, z_plus=z_plus, z_minus=z_minus, max_x=self.max_x, max_y=self.max_y,
+                                    max_z=self.max_z, verbose=self.verbose)
+            # plot the model's dynamic components
+            self.plots.plot_cell(object_coords=object_coords, nearest_coords=nearest_indices,
+                            vertex_indeces=cell_indices, mesh_coords=coords, max_x=self.max_x, max_y=self.max_y,
+                            max_z=self.max_z, spatial_res=self.spatial_res, model_time=self.evolution_time,
+                            save=animate_model, show=False)
             # finite central difference conductivity across entire box
             conduction = heat.conduction(coords=coords, x_plus_indeces=x_plus, x_minus_indeces=x_minus,
                                         y_plus_indeces=y_plus, y_minus_indeces=y_minus, z_plus_indeces=z_plus,

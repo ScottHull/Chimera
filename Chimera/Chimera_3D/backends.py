@@ -1,5 +1,23 @@
 from Chimera.Chimera_3D import console
+import numpy as np
+from . import settling_modes
 
+def set_columns(mesh_df, object_df, coords_range):
+
+    mesh_columns = ["object", "object_id", "xplus_index", "xminus_index", "yplus_index", "yminus_index",
+                    "zplus_index", "zminus_index", "temperature", "conductivity", "viscosity", "density"]
+    object_columns = ["object", "object_id", "coords", "temperature", "radius", "conductivity", "density", "velocity",
+                      "cell_indices", "cell_vertices", "nearest_index"]
+    for i in mesh_columns:
+        if i == "object" or i == "object_id":
+            mesh_df[i] = ["NONE" for i in coords_range]
+        elif "index" in str(i):
+            mesh_df[i] = [0 for i in coords_range]
+        else:
+            mesh_df[i] = [0.0 for i in coords_range]
+    for i in object_columns:
+        object_df[i] = np.NAN
+    return mesh_columns, mesh_df
 
 def generate_object_id(object_type, id_val):
     """
@@ -79,8 +97,31 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
 
 def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x_plus, x_minus, y_plus, y_minus,
                      z_plus, z_minus, verbose=True):
-
+    """
+    Takes a given coordinate and determines within which cell in the mesh it resides.
+    :param coord:
+    :param spatial_sigfigs:
+    :param spatial_res:
+    :param max_x:
+    :param max_y:
+    :param max_z:
+    :param x_plus:
+    :param x_minus:
+    :param y_plus:
+    :param y_minus:
+    :param z_plus:
+    :param z_minus:
+    :param verbose:
+    :return:
+    """
     def arbitrary_round(coord, spatial_res, spatial_sigfigs):
+        """
+        Rounds the given coordinate to coordinates defined in the mesh.
+        :param coord:
+        :param spatial_res:
+        :param spatial_sigfigs:
+        :return:
+        """
         x, y, z = coord[0], coord[1], coord[2]
         nearest_x = round(round(x / spatial_res) * spatial_res, spatial_sigfigs)
         nearest_y = round(round(y / spatial_res) * spatial_res, spatial_sigfigs)
@@ -88,6 +129,14 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         return nearest_x, nearest_y, nearest_z
 
     def get_neighbors(distance, nearest_coord, spatial_res, spatial_sigfigs):
+        """
+        Determines if the nearest neighbor should be a "plus coord" or a "minus coord" in space in the given dimensional component.
+        :param distance:
+        :param nearest_coord:
+        :param spatial_res:
+        :param spatial_sigfigs:
+        :return:
+        """
         if distance < 0:
             minus_coord = round(nearest_coord - spatial_res, spatial_sigfigs)
             return minus_coord
@@ -97,19 +146,19 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         else:
             return nearest_coord
 
-    x, y, z = coord[0], coord[1], coord[2]
+    x, y, z = coord[0], coord[1], coord[2]  # the x, y, z components of the coordinate
     nearest_x, nearest_y, nearest_z = arbitrary_round(coord=coord, spatial_res=spatial_res,
-                                                      spatial_sigfigs=spatial_sigfigs)
-    nearest_coord = (nearest_x, nearest_y, nearest_z)
+                                spatial_sigfigs=spatial_sigfigs)  # find the nearest defined coordinates in the mesh
+    nearest_coord = (nearest_x, nearest_y, nearest_z)  # the nearest coordinate point (tuple)
     nearest_index = predict_index(coord=nearest_coord, max_x=max_x, max_y=max_y,
-                                        max_z=max_z, spatial_res=spatial_res, verbose=verbose)
-    distance_x, distance_y, distance_z = (x - nearest_x), (y - nearest_y), (z - nearest_z)
+                    max_z=max_z, spatial_res=spatial_res, verbose=verbose)  # get the mesh index position of the nearest coordinate point
+    distance_x, distance_y, distance_z = (x - nearest_x), (y - nearest_y), (z - nearest_z)  # find the distance of the real coordinate to the nearest mesh coordinate
     x_interpolate = get_neighbors(distance=distance_x, nearest_coord=nearest_x, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)
+                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest x coordinate is +/- of real x coordinate
     y_interpolate = get_neighbors(distance=distance_y, nearest_coord=nearest_y, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)
+                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest y coordinate is +/- of real y coordinate
     z_interpolate = get_neighbors(distance=distance_z, nearest_coord=nearest_z, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)
+                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest z coordinate is +/- of real z coordinate
     if x_interpolate < nearest_x:
         x_plus_coord = nearest_x
         x_minus_coord = x_interpolate
@@ -171,14 +220,14 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
 
     cell_verteces = sorted(set(possible_verteces))
 
-    cell_indeces = []
+    cell_indices = []
     for i in cell_verteces:
-        cell_indeces.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
+        cell_indices.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
                                            max_z=max_z, spatial_res=spatial_res, verbose=verbose))
 
-    return nearest_index, cell_indeces
+    return nearest_index, cell_indices, cell_verteces
 
-def update_position(coord, velocity, delta_time):
+def update_position(coord, velocity, delta_time, max_z):
     """
     Accepts 3D coord, 3D velcoity vectors, and the timestep.  Returns new coordinate position.
     :param coord:
@@ -190,5 +239,65 @@ def update_position(coord, velocity, delta_time):
     x_vel, y_vel, z_vel = velocity[0], velocity[1], velocity[2]
     change_x, change_y, change_z = (x_vel * delta_time), (y_vel * delta_time), (z_vel * delta_time)
     new_x, new_y, new_z = (x + change_x), (y + change_y), (z + change_z)
-    new_coord = (new_x, new_y, new_z)
+    if new_z < max_z:
+        new_coord = (new_x, new_y, new_z)
+    else:
+        new_coord = (new_x, new_y, max_z)
     return new_coord
+
+
+def object_actions(mesh_df, objects_df, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
+                   x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
+                   verbose=True):
+    
+    object_objects = objects_df['object'].tolist()
+    object_object_ids = objects_df['object_id'].tolist()
+    object_temperatures = objects_df['temperature'].tolist()
+    object_densities = objects_df['density'].tolist()
+    object_coords = objects_df['coords'].tolist()
+    object_velocities = objects_df['velocity'].tolist()
+    object_conductivities = objects_df['conductivity'].tolist()
+    object_radii = objects_df['radius'].tolist()
+    cell_vertices = objects_df['cell_vertices'].tolist()
+    cell_indices = objects_df['cell_indices'].tolist()
+    nearest_indices = objects_df['nearest_index'].tolist()
+    for object_index, object in enumerate(object_objects):
+        object_id = object_object_ids[object_index]  # get the current object id
+        coord = object_coords[object_index]  # get the current object coordinate
+        #  interpolate to find the cell in which the object exists
+        #  calculate the object's settling velocity
+        if evolution_time == initial_time:
+            initial_cell = interpolate_cell(coord=coord, spatial_res=spatial_res,
+                                                     spatial_sigfigs=spatial_sigfigs, max_x=max_x,
+                                                     max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
+                                                     y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
+                                                     verbose=verbose)
+            nearest_indices[object_index] = initial_cell[0]
+            cell_indices[object_index] = initial_cell[1]
+            cell_vertices[object_index] = initial_cell[2]
+        velocity = settling_modes.stokes_terminal(density=object_densities[object_index],
+                                                  density_matrix=matrix_densities[nearest_indices[object_index]],
+                                                  drag_coeff=2, radius=object_radii[object_index],
+                                                  viscosity_matrix=matrix_viscosities[nearest_indices[object_index]])
+        #  get the object's new coordinates based on the object's velocity
+        updated_coords = update_position(coord=coord, velocity=velocity, delta_time=delta_time,
+                                                  max_z=max_z)
+        cell = interpolate_cell(coord=updated_coords, spatial_res=spatial_res,
+                                         spatial_sigfigs=spatial_sigfigs, max_x=max_x,
+                                         max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
+                                         y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
+                                         verbose=verbose)
+        console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
+            object, object_id, coord, updated_coords, velocity), verbose=verbose)
+        #  update the dataframes with the new data
+        object_velocities[object_index] = velocity
+        object_coords[object_index] = updated_coords
+        nearest_indices[object_index] = cell[0]
+        cell_indices[object_index] = cell[1]
+        cell_vertices[object_index] = cell[2]
+    objects_df['coords'] = object_coords
+    objects_df['velocity'] = object_velocities
+    objects_df['cell_vertices'] = cell_vertices
+    objects_df['cell_indices'] = cell_indices
+    objects_df['nearest_index'] = nearest_indices
+    return object_coords, nearest_indices, cell_indices
