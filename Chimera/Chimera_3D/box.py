@@ -31,9 +31,12 @@ class Box:
         self.matrix = None
         self.object = None
         self.boundary = None
+        self.lower_model = self.max_z
+        self.upper_model = 0.0
         self.id_val = 0
         self.conductivities = []
         self.plots = plots.plots()
+        self.iterations = 0
 
     def build(self, spatial_res, x, y, z=None):
         """
@@ -72,7 +75,7 @@ class Box:
         neighbor_count = 0
         total_count = len(self.mesh['coords'])
         t_start = time.time()
-        arr = self.mesh['coords'].tolist()  # an array of all the mesh coordinates
+        arr = np.array(self.mesh['coords'])  # an array of all the mesh coordinates
         x_plus = []
         x_minus = []
         y_plus = []
@@ -122,13 +125,13 @@ class Box:
         t_start = time.time()
         subdf = self.mesh.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
         self.mesh.drop(['z_vals'], axis=1)
-        coords = subdf['coords'].tolist()
-        temperatures = self.mesh['temperature'].tolist()
-        objects = self.mesh['object'].tolist()
-        object_ids = self.mesh['object_id'].tolist()
-        conductivities = self.mesh['conductivity'].tolist()
-        densities = self.mesh['density'].tolist()
-        viscosities = self.mesh['viscosity'].tolist()
+        coords = np.array(subdf['coords'])
+        temperatures = np.array(self.mesh['temperature'])
+        objects = np.array(self.mesh['object'])
+        object_ids = np.array(self.mesh['object_id'])
+        conductivities = np.array(self.mesh['conductivity'])
+        densities = np.array(self.mesh['density'])
+        viscosities = np.array(self.mesh['viscosity'])
         self.conductivities.append(conductivity)
         len_coords = len(coords)
         # insert the matrix into coordinate positions defined by the user's z-range
@@ -156,7 +159,7 @@ class Box:
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                                 time.time() - t_start), verbose=self.verbose)
 
-    def insert_boundary(self, temperature, depth_range, material='boundary'):
+    def insert_boundary(self, temperature, depth_range, location, material='boundary'):
         """
         Insert boundary layers in the model.
         :param temperature:
@@ -167,10 +170,10 @@ class Box:
         console.event("Inserting boundary ({}) into the box!".format(material), verbose=self.verbose)
         t_start = time.time()
         subdf = self.mesh.query('{} <= z_vals <= {}'.format(depth_range[0], depth_range[1]))
-        coords = subdf['coords'].tolist()
-        temperatures = self.mesh['temperature'].tolist()
-        objects = self.mesh['object'].tolist()
-        object_ids = self.mesh['object_id'].tolist()
+        coords = np.array(subdf['coords'])
+        temperatures = np.array(self.mesh['temperature'])
+        objects = np.array(self.mesh['object'])
+        object_ids = np.array(self.mesh['object_id'])
         for coord in coords:
             if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
                 index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
@@ -185,6 +188,11 @@ class Box:
         self.mesh['object'] = objects
         self.mesh['object_id'] = object_ids
         self.boundary = True
+        # the upper-most usable portion of the model is the matrix immediately below the boundary
+        if location.lower() == "top" or location.lower() == "t":
+            self.upper_model = depth_range[1]
+        elif location.lower() == "bottom" or location.lower() == "b":
+            self.lower_model = depth_range[0]
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                                                                                               time.time() - t_start), verbose=self.verbose)
 
@@ -226,7 +234,7 @@ class Box:
         temperatures.append(temperature)
         conductivities.append(conductivity)
         densities.append(density)
-        velocities.append(0.0)
+        velocities.append((0.0, 0.0, 0.0))
         object_headers = [self.objects.columns.values]
         self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
@@ -250,10 +258,9 @@ class Box:
         Verifies that the box is constructed properly.
         :return:
         """
-        objects = self.mesh['object'].tolist()
+        objects = np.array(self.mesh['object'])
         if 'NONE' in objects:
             console.error("WARNING! Not all coordinate spaces defined in box!", verbose=True)
-            self.mesh.drop(['z_vals'])
         else:
             console.event("Box verified!", verbose=True)
 
@@ -274,17 +281,17 @@ class Box:
         """
         t = time.time()
         # extract values that are not updated during the loop from the dataframe as lists
-        coords = self.mesh['coords'].tolist()
-        x_plus = self.mesh['xplus_index'].tolist()
-        x_minus = self.mesh['xminus_index'].tolist()
-        y_plus = self.mesh['yplus_index']
-        y_minus = self.mesh['yminus_index']
-        z_plus = self.mesh['zplus_index'].tolist()
-        z_minus = self.mesh['zminus_index'].tolist()
-        object_ids = self.mesh['object_id'].tolist()
-        conductivity = self.mesh['conductivity'].tolist()
-        viscosity = self.mesh['viscosity'].tolist()
-        density = self.mesh['density'].tolist()
+        coords = np.array(self.mesh['coords'])
+        x_plus = np.array(self.mesh['xplus_index'])
+        x_minus = np.array(self.mesh['xminus_index'])
+        y_plus = np.array(self.mesh['yplus_index'])
+        y_minus = np.array(self.mesh['yminus_index'])
+        z_plus = np.array(self.mesh['zplus_index'])
+        z_minus = np.array(self.mesh['zminus_index'])
+        object_ids = np.array(self.mesh['object_id'])
+        conductivity = np.array(self.mesh['conductivity'])
+        viscosity = np.array(self.mesh['viscosity'])
+        density = np.array(self.mesh['density'])
         # calculate the timestep based on the maximum conductivity of material in the box
         self.delta_time = backends.override_timestep(timestep=timestep, conductivities=self.conductivities,
                                                      spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs)
@@ -292,7 +299,7 @@ class Box:
         while auto_update is True and self.evolution_time > 0:
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
-            temperatures = self.mesh['temperature'].tolist()
+            temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
             object_coords, nearest_indices, cell_indices = backends.object_actions(mesh_df=self.mesh, objects_df=self.objects,
                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
@@ -300,26 +307,31 @@ class Box:
                                     initial_time=self.initial_time, matrix_densities=density,
                                     matrix_viscosities=viscosity, x_plus=x_plus, x_minus=x_minus, y_plus=y_plus,
                                     y_minus=y_minus, z_plus=z_plus, z_minus=z_minus, max_x=self.max_x, max_y=self.max_y,
-                                    max_z=self.max_z, verbose=self.verbose)
+                                    max_z=self.max_z, lower_model=self.lower_model, upper_model=self.upper_model,
+                                    verbose=self.verbose)
             # plot the model's dynamic components
             self.plots.plot_cell(object_coords=object_coords, nearest_coords=nearest_indices,
                             vertex_indeces=cell_indices, mesh_coords=coords, max_x=self.max_x, max_y=self.max_y,
                             max_z=self.max_z, spatial_res=self.spatial_res, model_time=self.evolution_time,
                             save=animate_model, show=False)
             # finite central difference conductivity across entire box
+            conduction_t = time.time()
             conduction = heat.conduction(coords=coords, x_plus_indeces=x_plus, x_minus_indeces=x_minus,
                                         y_plus_indeces=y_plus, y_minus_indeces=y_minus, z_plus_indeces=z_plus,
                                         z_minus_indeces=z_minus, temperatures=temperatures, conductivity=conductivity,
                                         spatial_res=self.spatial_res, delta_time=self.delta_time, object_ids=object_ids)
             # conduction will return tuple: temperature at index 0 and dT/dt at index 1
-            self.mesh['temperature'] = conduction[0]
-            self.mesh['dT_dt'] = conduction[1]
-            console.nominal("Finished modeling conduction! (task took {}s)".format(time.time() - t), verbose=self.verbose)
+            self.mesh['temperature'] = conduction[0]  # reset the model's temperatures due to heat transfer
+            self.mesh['dT_dt'] = conduction[1]  # reset the model's temperature gradients due to heat transfer
+            console.nominal("Finished modeling conduction! (task took {}s)".format(time.time() - conduction_t), verbose=self.verbose)
             # update the new time in the model
             new_evolution_time = round(self.evolution_time - self.delta_time, self.spatial_sigfigs)
             self.evolution_time = new_evolution_time
+            self.iterations += 1
 
-        console.event("Model time is at 0! (task took {}s)".format(time.time() - t), verbose=self.verbose)
+        console.event("Model time is at 0! (task took {}s ({} iterations (1 iteration = {}s), {} timestep)".format(time.time() - t,
+                                                            self.iterations, (time.time() - t) / self.iterations, self.delta_time), verbose=self.verbose)
+        # will create animations of models if specified
         if animate_model is True:
             self.plots.animate(initial_time=self.initial_time)
         return None

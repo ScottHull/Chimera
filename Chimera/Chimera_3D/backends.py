@@ -13,6 +13,8 @@ def set_columns(mesh_df, object_df, coords_range):
             mesh_df[i] = ["NONE" for i in coords_range]
         elif "index" in str(i):
             mesh_df[i] = [0 for i in coords_range]
+        elif i == "coords" or i == "velocity":
+            mesh_df[i] = [(0,0,0) for i in coords_range]
         else:
             mesh_df[i] = [0.0 for i in coords_range]
     for i in object_columns:
@@ -248,20 +250,20 @@ def update_position(coord, velocity, delta_time, max_z):
 
 def object_actions(mesh_df, objects_df, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
-                   verbose=True):
+                   lower_model, upper_model, verbose=True):
     
-    object_objects = objects_df['object'].tolist()
-    object_object_ids = objects_df['object_id'].tolist()
-    object_temperatures = objects_df['temperature'].tolist()
-    object_densities = objects_df['density'].tolist()
-    object_coords = objects_df['coords'].tolist()
-    object_velocities = objects_df['velocity'].tolist()
-    object_conductivities = objects_df['conductivity'].tolist()
-    object_radii = objects_df['radius'].tolist()
-    cell_vertices = objects_df['cell_vertices'].tolist()
-    cell_indices = objects_df['cell_indices'].tolist()
-    nearest_indices = objects_df['nearest_index'].tolist()
-    for object_index, object in enumerate(object_objects):
+    object_objects = np.array(objects_df['object'])
+    object_object_ids = np.array(objects_df['object_id'])
+    object_temperatures = np.array(objects_df['temperature'])
+    object_densities = np.array(objects_df['density'])
+    object_coords = np.array(objects_df['coords'], dtype=object)
+    object_velocities = np.array(objects_df['velocity'], dtype=object)
+    object_conductivities = np.array(objects_df['conductivity'])
+    object_radii = np.array(objects_df['radius'])
+    cell_vertices = np.array(objects_df['cell_vertices'], dtype=object)
+    cell_indices = np.array(objects_df['cell_indices'], dtype=object)
+    nearest_indices = np.array(objects_df['nearest_index'], dtype=object)
+    for object_index, object_object in enumerate(object_objects):
         object_id = object_object_ids[object_index]  # get the current object id
         coord = object_coords[object_index]  # get the current object coordinate
         #  interpolate to find the cell in which the object exists
@@ -278,7 +280,8 @@ def object_actions(mesh_df, objects_df, spatial_res, spatial_sigfigs, evolution_
         velocity = settling_modes.stokes_terminal(density=object_densities[object_index],
                                                   density_matrix=matrix_densities[nearest_indices[object_index]],
                                                   drag_coeff=2, radius=object_radii[object_index],
-                                                  viscosity_matrix=matrix_viscosities[nearest_indices[object_index]])
+                                                  viscosity_matrix=matrix_viscosities[nearest_indices[object_index]],
+                                                  current_coord=coord, lower_model=lower_model, upper_model=upper_model)
         #  get the object's new coordinates based on the object's velocity
         updated_coords = update_position(coord=coord, velocity=velocity, delta_time=delta_time,
                                                   max_z=max_z)
@@ -288,7 +291,7 @@ def object_actions(mesh_df, objects_df, spatial_res, spatial_sigfigs, evolution_
                                          y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
                                          verbose=verbose)
         console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
-            object, object_id, coord, updated_coords, velocity), verbose=verbose)
+            object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
         #  update the dataframes with the new data
         object_velocities[object_index] = velocity
         object_coords[object_index] = updated_coords

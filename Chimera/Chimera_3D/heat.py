@@ -35,7 +35,7 @@ def conduction(coords, x_plus_indeces, x_minus_indeces, y_plus_indeces, y_minus_
             dT = dT_dt * delta_time  # the change in temperature with respect to the finite timestep
             new_T = temp_point + dT  # adds dT to the original temperature
             update_temps.append(new_T)  # adds the new temperature to the updated temperature list
-        else:
+        else:  # if it is a boundary layer, it is a fixed temperature
             update_temps.append(temp_point)
             dT_dt_list.append(0.0)
 
