@@ -20,7 +20,7 @@ class plots():
             shutil.rmtree(os.getcwd() + "/plot_cell")
         os.mkdir(os.getcwd() + "/plot_cell")
 
-    def plot_cell(self, object_coords, nearest_coords, vertex_indeces, mesh_coords, max_x, max_y, max_z, spatial_res,
+    def plot_cell(self, object_coords, nearest_coords, vertex_indices, mesh_coords, max_x, max_y, max_z, spatial_res,
                   model_time, save=False, show=False):
         if save is True or show is True:
             fig = plt.figure()
@@ -28,7 +28,7 @@ class plots():
             for index, object_coord in enumerate(object_coords):
                 x, y, z = object_coord[0], object_coord[1], object_coord[2]
                 cell_vertices = []
-                for i in vertex_indeces[index]:
+                for i in vertex_indices[index]:
                     cell_vertices.append(list(mesh_coords[i]))
                 ax.scatter3D(x, y, z, color='r')
                 points = np.array(cell_vertices)

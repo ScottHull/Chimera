@@ -5,7 +5,7 @@ from . import settling_modes
 def set_columns(mesh_df, object_df, coords_range):
 
     mesh_columns = ["object", "object_id", "xplus_index", "xminus_index", "yplus_index", "yminus_index",
-                    "zplus_index", "zminus_index", "temperature", "conductivity", "viscosity", "density"]
+                    "zplus_index", "zminus_index", "temperature", "dT_dt", "conductivity", "viscosity", "density"]
     object_columns = ["object", "object_id", "coords", "temperature", "radius", "conductivity", "density", "velocity",
                       "cell_indices", "cell_vertices", "nearest_index"]
     for i in mesh_columns:
@@ -75,6 +75,7 @@ def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
         return index
     else:
         console.error("2D point prediction not implemented!", verbose=verbose)
+        return None
 
 def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
     """
@@ -304,3 +305,23 @@ def object_actions(mesh_df, objects_df, spatial_res, spatial_sigfigs, evolution_
     objects_df['cell_indices'] = cell_indices
     objects_df['nearest_index'] = nearest_indices
     return object_coords, nearest_indices, cell_indices
+
+def chunk_array(array, num_chunks, len_array):
+    """
+    Chunk a given list into a given number of smaller lists.
+    :param array:
+    :param num_chunks:
+    :return:
+    """
+    # return [array[i:i + num_chunks] for i in range(0, len(array), num_chunks)]
+    if len_array > num_chunks:
+        if len_array % num_chunks == 0:
+            chunks = list(zip(*[iter(array)] * (int(round(len_array / num_chunks)))))
+            return chunks
+        else:
+            odd_num = (array[-1],)
+            chunks = list(zip(*[iter(array)] * (int(round(len_array / num_chunks)))))
+            chunks[-1] = chunks[-1] + odd_num
+            return chunks
+    else:
+        return array

@@ -3,6 +3,7 @@ import multiprocessing
 # split a list into evenly sized chunks
 def chunks(l, n):
     print(l, n)
+    print([l[i:i+n] for i in range(0, len(l), n)])
     return [l[i:i+n] for i in range(0, len(l), n)]
 
 
