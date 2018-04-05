@@ -1,7 +1,6 @@
-import numpy as np
 import multiprocessing as mp
-import time
-from . import backends
+from math import pi
+from . import backends, dynamics
 
 def conduction(coords, len_coords, x_plus_indices, x_minus_indices, y_plus_indices, y_minus_indices, z_plus_indices,
                z_minus_indices, temperatures, object_ids, spatial_res, conductivities, delta_time, mesh_indices,
@@ -142,13 +141,54 @@ def multiprocess_conduction_manager(coords, len_coords, x_plus_indices, x_minus_
                                                                                    num_workers, update_temps,
                                                                                    dT_dt_list, multiprocess))
         jobs.append(p)
-        p.start()
+        # p.start()
     for job in jobs:
+        job.start()
         job.join()
 
     return update_temps, dT_dt_list
 
+def object_conduction(object_temperatures, object_index, object_k, mesh_temperatures, nearest_index,
+                      spatial_res, delta_time):
 
-def viscous_dissipation():
-    pass
+    nearest_temp = mesh_temperatures[nearest_index]
+    t_laplacian = (((2 * nearest_temp) - (2 * object_temperatures[object_index])) / ((spatial_res) ** 2))
+    dT_dt = object_k * t_laplacian
+    dT = dT_dt * delta_time
+    if dT > 0:
+        mesh_temperatures[nearest_index] -= dT
+        object_temperatures[object_index] += dT
+    elif dT < 0:
+        mesh_temperatures[nearest_index] += dT
+        object_temperatures[object_index] -= dT
+    else:
+        pass
+    return dT_dt
 
+
+def viscous_dissipation(drag_coeff, matrix_density, object_radius, object_density, object_velocity, delta_time, cp):
+    """
+    The heat in Kelvin produced by viscous dissipation.
+    :param drag_coeff:
+    :param matrix_density:
+    :param object_radius:
+    :param object_velocity:
+    :param object_mass:
+    :param delta_time:
+    :param cp:
+    :return:
+    """
+    object_volume = (4/3) * pi * (object_radius**3)
+    object_mass = object_density * object_volume
+    grav_accel = 9.81
+    # the drag force on the object, which will be converted to heat via viscous dissipation
+    fd = dynamics.drag_force(drag_coeff=drag_coeff, matrix_density=matrix_density, object_radius=object_radius,
+                             object_velocity=object_velocity)
+    fb = dynamics.buoyant_force(matrix_density=matrix_density, grav_accel=grav_accel, object_radius=object_radius)
+    fg = dynamics.grav_force(object_radius=object_radius, object_density=object_density, grav_accel=grav_accel)
+    # for simplicity, assume the drag force is conservative within the time interval
+    # use this conservative drag force to find the work done by it
+    w = dynamics.work_conservative(delta_time=delta_time, force=fd, velocity=object_velocity)
+    # convert the work to degrees kelvin
+    k = w / (cp * object_mass)
+    return k

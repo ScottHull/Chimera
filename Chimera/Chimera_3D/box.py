@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import multiprocessing as mp
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, settling_modes
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots
 import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
@@ -202,7 +202,7 @@ class Box:
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                                                                                               time.time() - t_start), verbose=self.verbose)
 
-    def insert_object(self, material, temperature, radius, conductivity, density, x, y, z=None):
+    def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z=None):
         """
         Insert an object in the the objects dataframe.
         :param material:
@@ -231,6 +231,8 @@ class Box:
         densities = self.objects['density'].tolist()
         velocities = self.objects['velocity'].tolist()
         conductivities = self.objects['conductivity'].tolist()
+        drag_coeffs = self.objects['drag_coeff'].tolist()
+        cps = self.objects['cp'].tolist()
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
         objects.append(material)
         object_ids.append(backends.generate_object_id(object_type='object',
@@ -241,6 +243,8 @@ class Box:
         conductivities.append(conductivity)
         densities.append(density)
         velocities.append((0.0, 0.0, 0.0))
+        drag_coeffs.append(drag_coeff)
+        cps.append(cp)
         object_headers = [self.objects.columns.values]
         self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
@@ -250,6 +254,8 @@ class Box:
         self.objects['coords'] = locs
         self.objects['conductivity'] = conductivities
         self.objects['density'] = densities
+        self.objects['drag_coeff'] = drag_coeffs
+        self.objects['cp'] = cps
         self.objects['velocity'] = velocities
         self.objects['nearest_index'] = np.NAN
         self.objects['cell_indices'] = np.NAN
@@ -316,7 +322,8 @@ class Box:
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             # temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
-            object_coords, nearest_indices, cell_indices = backends.object_actions(mesh_df=self.mesh, objects_df=self.objects,
+            object_coords, nearest_indices, cell_indices = backends.object_actions(matrix_temperatures=temperatures,
+                                    objects_df=self.objects,
                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
                                     evolution_time=self.evolution_time, delta_time=self.delta_time,
                                     initial_time=self.initial_time, matrix_densities=density,
