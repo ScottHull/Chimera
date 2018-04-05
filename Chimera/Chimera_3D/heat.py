@@ -148,25 +148,31 @@ def multiprocess_conduction_manager(coords, len_coords, x_plus_indices, x_minus_
 
     return update_temps, dT_dt_list
 
-def object_conduction(object_temperatures, object_index, object_k, mesh_temperatures, nearest_index,
+def object_conduction(object_temperatures, object_index, object_k, mesh_temperatures, nearest_index, farthest_index,
                       spatial_res, delta_time):
 
     nearest_temp = mesh_temperatures[nearest_index]
-    t_laplacian = (((2 * nearest_temp) - (2 * object_temperatures[object_index])) / ((spatial_res) ** 2))
+    farthest_temp = mesh_temperatures[farthest_index]
+    print("\n", nearest_temp, object_temperatures[object_index])
+    t_laplacian = (((nearest_temp) - (2 * object_temperatures[object_index]) + farthest_temp) / ((spatial_res) ** 2))
     dT_dt = object_k * t_laplacian
     dT = dT_dt * delta_time
     if dT > 0:
         mesh_temperatures[nearest_index] -= dT
         object_temperatures[object_index] += dT
+        print("\nMESH WILL LOSE {}, OBJECT WILL GAIN {}\nMESH T: {}, OBJECT T: {}".format(-dT, dT, mesh_temperatures[nearest_index], mesh_temperatures[object_index]))
     elif dT < 0:
-        mesh_temperatures[nearest_index] += dT
-        object_temperatures[object_index] -= dT
+        mesh_temperatures[nearest_index] -= dT
+        object_temperatures[object_index] += dT
+        print("\nMESH WILL GAIN {}, OBJECT WILL LOSE {}\nMESH T: {}, OBJECT T: {}".format(-dT, dT, mesh_temperatures[nearest_index], mesh_temperatures[object_index]))
+
     else:
         pass
-    return dT_dt
+    return dT, dT_dt
 
 
-def viscous_dissipation(drag_coeff, matrix_density, object_radius, object_density, object_velocity, delta_time, cp):
+def viscous_dissipation(drag_coeff, matrix_density, object_radius, object_density, object_velocity, delta_time, cp,
+                        distance_travelled):
     """
     The heat in Kelvin produced by viscous dissipation.
     :param drag_coeff:
@@ -183,12 +189,12 @@ def viscous_dissipation(drag_coeff, matrix_density, object_radius, object_densit
     grav_accel = 9.81
     # the drag force on the object, which will be converted to heat via viscous dissipation
     fd = dynamics.drag_force(drag_coeff=drag_coeff, matrix_density=matrix_density, object_radius=object_radius,
-                             object_velocity=object_velocity)
+                             distance_travelled=distance_travelled, delta_time=delta_time)
     fb = dynamics.buoyant_force(matrix_density=matrix_density, grav_accel=grav_accel, object_radius=object_radius)
     fg = dynamics.grav_force(object_radius=object_radius, object_density=object_density, grav_accel=grav_accel)
     # for simplicity, assume the drag force is conservative within the time interval
     # use this conservative drag force to find the work done by it
-    w = dynamics.work_conservative(delta_time=delta_time, force=fd, velocity=object_velocity)
+    w = dynamics.work_conservative(delta_time=delta_time, force=fd, velocity=object_velocity, distance_travelled=distance_travelled)
     # convert the work to degrees kelvin
     k = w / (cp * object_mass)
     return k

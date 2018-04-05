@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import multiprocessing as mp
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects
 import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
@@ -78,7 +78,7 @@ class Box:
         self.y_coords = np.NAN
         self.z_coords = np.NAN
         spatial_sigfigs = m.get_spatial_sigfigs()  # find the number of sigfigs defined by the spatial resolution
-        neighbor_count = 0
+        neighbor_count = 1
         total_count = len(self.mesh['coords'])
         t_start = time.time()
         arr = np.array(self.mesh['coords'])  # an array of all the mesh coordinates
@@ -322,7 +322,7 @@ class Box:
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             # temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
-            object_coords, nearest_indices, cell_indices = backends.object_actions(matrix_temperatures=temperatures,
+            object_coords, nearest_indices, cell_indices = objects.object_actions(matrix_temperatures=temperatures,
                                     objects_df=self.objects,
                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
                                     evolution_time=self.evolution_time, delta_time=self.delta_time,
@@ -334,8 +334,8 @@ class Box:
             # plot the model's dynamic components
             self.plots.plot_cell(object_coords=object_coords, nearest_coords=nearest_indices,
                             vertex_indices=cell_indices, mesh_coords=coords, max_x=self.max_x, max_y=self.max_y,
-                            max_z=self.max_z, spatial_res=self.spatial_res, model_time=self.evolution_time,
-                            save=animate_model, show=False)
+                            max_z=self.max_z, temperatures=temperatures, spatial_res=self.spatial_res, model_time=self.evolution_time,
+                            save=animate_model, show=False, heat=True)
             # finite central difference conductivity across entire box
             conduction_t = time.time()
             conduction = heat.conduction(coords=coords, len_coords=len_coords, x_plus_indices=x_plus, x_minus_indices=x_minus,

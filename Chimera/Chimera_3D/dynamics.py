@@ -43,7 +43,7 @@ def buoyant_force(matrix_density, object_radius, grav_accel):
     fb = (pi / 6) * ((2 * object_radius)**3) * matrix_density * grav_accel
     return fb
 
-def drag_force(drag_coeff, matrix_density, object_velocity, object_radius):
+def drag_force(drag_coeff, matrix_density, object_radius, distance_travelled, delta_time):
     """
     The drag force exerted on an object.
     :param drag_coeff:
@@ -52,10 +52,11 @@ def drag_force(drag_coeff, matrix_density, object_velocity, object_radius):
     :param body_radius:
     :return:
     """
-    fd = drag_coeff * 0.5 * matrix_density * (object_velocity[2]**2) * (pi * (object_radius**2))
+    object_velocity = distance_travelled[2] / delta_time
+    fd = drag_coeff * 0.5 * matrix_density * (object_velocity**2) * (pi * (object_radius**2))
     return fd
 
-def work_conservative(force, velocity, delta_time):
+def work_conservative(force, velocity, distance_travelled, delta_time):
     """
     The work done assuming a conservative force, W = F * d.
     :param force:
@@ -63,6 +64,5 @@ def work_conservative(force, velocity, delta_time):
     :param delta_time:
     :return:
     """
-    distance = velocity[2] * delta_time
-    w = force * distance
+    w = force * distance_travelled[2]
     return w
