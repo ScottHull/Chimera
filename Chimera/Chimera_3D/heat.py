@@ -149,7 +149,7 @@ def multiprocess_conduction_manager(coords, len_coords, x_plus_indices, x_minus_
     return update_temps, dT_dt_list
 
 def object_conduction(object_temperatures, object_index, object_k, mesh_temperatures, nearest_index, farthest_index,
-                      spatial_res, delta_time):
+                      spatial_res, delta_time, distances, directional_vertices, vertex_distances):
 
     nearest_temp = mesh_temperatures[nearest_index]
     farthest_temp = mesh_temperatures[farthest_index]

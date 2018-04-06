@@ -61,7 +61,9 @@ def object_actions(objects_df, spatial_res, spatial_sigfigs, evolution_time, ini
                                                    object_k=object_conductivities[object_index],
                                                    spatial_res=spatial_res,
                                                    delta_time=delta_time, mesh_temperatures=matrix_temperatures,
-                                                   nearest_index=cell[0], farthest_index=cell[3])
+                                                   nearest_index=cell[0], farthest_index=cell[3],
+                                                   distances=cell[4], directional_vertices=cell[5],
+                                                   vertex_distances=cell[6])
         print("\n", object_conduction)
         console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
             object_object, object_id, coord, updated_coords, velocity), verbose=verbose)

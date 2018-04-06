@@ -149,6 +149,31 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         else:
             return nearest_coord
 
+    def determine_directional_temps(x, y, z, vertex, directional_temp_dict, vertex_index):
+        vertex_x, vertex_y, vertex_z = vertex[0], vertex[1], vertex[2]
+        if vertex_x > x:
+            directional_temp_dict['x+'].append(vertex_index)
+        elif vertex_x < x:
+            directional_temp_dict['x-'].append(vertex_index)
+        else:
+            directional_temp_dict['x+'].append(vertex_index)
+            directional_temp_dict['x-'].append(vertex_index)
+        if vertex_y > y:
+            directional_temp_dict['y+'].append(vertex_index)
+        elif vertex_y < y:
+            directional_temp_dict['y-'].append(vertex_index)
+        else:
+            directional_temp_dict['y+'].append(vertex_index)
+            directional_temp_dict['y-'].append(vertex_index)
+        if vertex_z > z:
+            directional_temp_dict['z+'].append(vertex_index)
+        elif vertex_z < z:
+            directional_temp_dict['z-'].append(vertex_index)
+        else:
+            directional_temp_dict['z+'].append(vertex_index)
+            directional_temp_dict['z-'].append(vertex_index)
+        return directional_temp_dict
+
     x, y, z = coord[0], coord[1], coord[2]  # the x, y, z components of the coordinate
     nearest_x, nearest_y, nearest_z = arbitrary_round(coord=coord, spatial_res=spatial_res,
                                 spatial_sigfigs=spatial_sigfigs)  # find the nearest defined coordinates in the mesh
@@ -223,21 +248,36 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
 
     cell_verteces = sorted(set(possible_verteces))
 
+    distances = {}
     max_distance = 0
     farthest_coord = nearest_coord
+    directional_vertices = {
+        'x+': [],
+        'x-': [],
+        'y+': [],
+        'y-': [],
+        'z+': [],
+        'z-': [],
+    }
+
+    vertex_distances = {
+    }
 
     cell_indices = []
     for i in cell_verteces:
-        test_max_distance = sqrt(((nearest_coord[0] - i[0])**2) + ((nearest_coord[1] - i[1])**2) + ((nearest_coord[2] - i[2])**2))
-        if test_max_distance > max_distance:
-            max_distance = test_max_distance
+        vertex_index = cell_indices.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
+                                                         max_z=max_z, spatial_res=spatial_res, verbose=verbose))
+        distance = sqrt(((nearest_coord[0] - i[0])**2) + ((nearest_coord[1] - i[1])**2) + ((nearest_coord[2] - i[2])**2))
+        vertex_distances.update({vertex_index: distance})
+        if distance > max_distance:
+            max_distance = distance
             farthest_coord = i
-        cell_indices.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
-                                           max_z=max_z, spatial_res=spatial_res, verbose=verbose))
-
+            distances.update({i: distance})
+        determine_directional_temps(x=x, y=y, z=z, directional_temp_dict=directional_vertices, vertex=i,
+                                    vertex_index=vertex_index)
     farthest_index = predict_index(coord=farthest_coord, max_x=max_x, max_y=max_y, max_z=max_z, spatial_res=spatial_res)
 
-    return nearest_index, cell_indices, cell_verteces, farthest_index
+    return nearest_index, cell_indices, cell_verteces, farthest_index, distances, directional_vertices, vertex_distances
 
 def update_position(coord, velocity, delta_time, max_z, spatial_res):
     """
