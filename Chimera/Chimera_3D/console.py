@@ -18,16 +18,15 @@ def nominal(message, verbose):
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status = "\r" + bcolors.OKGREEN + ("[~] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
         sys.stdout.write(status)
-        sys.stdout.flush()
 
 def error(message, verbose):
     if verbose is True:
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         status = bcolors.FAIL + ("\n[X] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
-        print(status)
+        sys.stdout.write(status)
 
 def event(message, verbose):
     if verbose is True:
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        status = bcolors.OKBLUE + ("\n[!] (" + str(time) + ")  " + str(message)) + bcolors.ENDC
-        print(status)
+        status = bcolors.OKBLUE + ("\n[!] (" + str(time) + ")  " + str(message) + "\n") + bcolors.ENDC
+        sys.stdout.write(status)

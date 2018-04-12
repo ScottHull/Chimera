@@ -1,12 +1,13 @@
 import multiprocessing as mp
 from math import pi
+import numpy as np
 from . import backends, dynamics
 
 def conduction(coords, len_coords, x_plus_indices, x_minus_indices, y_plus_indices, y_minus_indices, z_plus_indices,
-               z_minus_indices, temperatures, object_ids, spatial_res, conductivities, delta_time, mesh_indices,
-               num_workers, multiprocess=False):
+               z_minus_indices, temperatures, object_ids, spatial_res, conductivities, delta_time, real_delta_time,
+               mesh_indices, num_workers, multiprocess=False):
 
-    if multiprocess is False:
+    if not multiprocess:
 
         update_temps = [0 for _ in range(0, len_coords)]  # all of the updated temperatures due to conduction
         dT_dt_list = [0 for _ in range(0, len_coords)]
@@ -36,10 +37,10 @@ def conduction(coords, len_coords, x_plus_indices, x_minus_indices, y_plus_indic
                 temp_laplacian = x_temp_laplacian + y_temp_laplacian + z_temp_laplacian
 
                 # change in temperature with respect to time, dT/dt = -k * laplacian(T)
-                dT_dt = (k) * temp_laplacian  # the central finite difference heat equation
+                dT_dt = k * temp_laplacian  # the central finite difference heat equation
                 dT_dt_list[index] = dT_dt
 
-                dT = dT_dt * delta_time  # the change in temperature with respect to the finite timestep
+                dT = dT_dt * (delta_time / real_delta_time)  # the change in temperature with respect to the finite normalized timestep
                 new_T = temp_point + dT  # adds dT to the original temperature
                 update_temps[index] = new_T  # adds the new temperature to the updated temperature list
             else:  # if it is a boundary layer, it is a fixed temperature
@@ -148,26 +149,37 @@ def multiprocess_conduction_manager(coords, len_coords, x_plus_indices, x_minus_
 
     return update_temps, dT_dt_list
 
-def object_conduction(object_temperatures, object_index, object_k, mesh_temperatures, nearest_index, farthest_index,
-                      spatial_res, delta_time, distances, directional_vertices, vertex_distances):
+def object_conduction(object_temperatures, object_index, object_k, matrix_k, mesh_temperatures, nearest_index, farthest_index,
+                      spatial_res, delta_time, directional_vertices, vertex_distances, total_distance, matrix_ids,
+                      coords, matrix_diffusivities, spatial_sigfigs, verbose):
 
-    nearest_temp = mesh_temperatures[nearest_index]
-    farthest_temp = mesh_temperatures[farthest_index]
-    print("\n", nearest_temp, object_temperatures[object_index])
-    t_laplacian = (((nearest_temp) - (2 * object_temperatures[object_index]) + farthest_temp) / ((spatial_res) ** 2))
-    dT_dt = object_k * t_laplacian
-    dT = dT_dt * delta_time
-    if dT > 0:
-        mesh_temperatures[nearest_index] -= dT
-        object_temperatures[object_index] += dT
-        print("\nMESH WILL LOSE {}, OBJECT WILL GAIN {}\nMESH T: {}, OBJECT T: {}".format(-dT, dT, mesh_temperatures[nearest_index], mesh_temperatures[object_index]))
-    elif dT < 0:
-        mesh_temperatures[nearest_index] -= dT
-        object_temperatures[object_index] += dT
-        print("\nMESH WILL GAIN {}, OBJECT WILL LOSE {}\nMESH T: {}, OBJECT T: {}".format(-dT, dT, mesh_temperatures[nearest_index], mesh_temperatures[object_index]))
+    box_spatial_res = (spatial_res / 2)
+    box_delta_time = backends.override_timestep(spatial_res=box_spatial_res, conductivities=None,
+                                                diffusivities=np.array([matrix_diffusivities[nearest_index]]),
+                                                spatial_sigfigs=spatial_sigfigs, timestep=False, verbose=verbose)
+    object_temp = object_temperatures[object_index]
+    x_plus_temps = [mesh_temperatures[i] for i in directional_vertices["x+"]]
+    x_minus_temps = [mesh_temperatures[i] for i in directional_vertices["x-"]]
+    y_plus_temps = [mesh_temperatures[i] for i in directional_vertices["y+"]]
+    y_minus_temps = [mesh_temperatures[i] for i in directional_vertices["y-"]]
+    z_plus_temps = [mesh_temperatures[i] for i in directional_vertices["z+"]]
+    z_minus_temps = [mesh_temperatures[i] for i in directional_vertices["z-"]]
+    d2T_dx2 = ((sum(x_plus_temps) / len(x_plus_temps)) - (2 * object_temp) + (sum(x_minus_temps) / len(x_minus_temps))) / (
+                (box_spatial_res ** 2))
+    d2T_dy2 = ((sum(y_plus_temps) / len(y_plus_temps)) - (2 * object_temp) + (sum(y_minus_temps) / len(y_minus_temps))) / (
+                (box_spatial_res ** 2))
+    d2T_dz2 = ((sum(z_plus_temps) / len(z_plus_temps)) - (2 * object_temp) + (sum(z_minus_temps) / len(z_minus_temps))) / (
+                (box_spatial_res ** 2))
+    t_laplacian = (d2T_dx2 + d2T_dy2 + d2T_dz2)  # laplacian is sum of the 2nd derivatives
+    dT_dt = matrix_k * t_laplacian
+    dT = dT_dt * (delta_time / box_delta_time)  # must normalize delta time to the box delta time
+    for vertex_index in vertex_distances:
+        if 'C' not in matrix_ids[vertex_index]:
+            vertex_distance = vertex_distances[vertex_index]
+            distance_ratio = vertex_distance / total_distance
+            mesh_temperatures[vertex_index] -= (dT * distance_ratio)
+    object_temperatures[object_index] += dT
 
-    else:
-        pass
     return dT, dT_dt
 
 

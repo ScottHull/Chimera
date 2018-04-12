@@ -5,9 +5,10 @@ from math import sqrt
 def set_columns(mesh_df, object_df, coords_range):
 
     mesh_columns = ["object", "object_id", "xplus_index", "xminus_index", "yplus_index", "yminus_index",
-                    "zplus_index", "zminus_index", "temperature", "dT_dt", "conductivity", "viscosity", "density"]
+                    "zplus_index", "zminus_index", "temperature", "dT_dt", "conductivity", "viscosity", "density",
+                    "diffusivity"]
     object_columns = ["object", "object_id", "coords", "temperature", "radius", "conductivity", "density", "velocity",
-                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp"]
+                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp", "diffusivity"]
     for i in mesh_columns:
         if i == "object" or i == "object_id":
             mesh_df[i] = ["NONE" for i in coords_range]
@@ -41,15 +42,15 @@ def generate_object_id(object_type, id_val):
 
     object_type = object_type.lower()
 
-    if object_type is 'matrix':
+    if object_type == 'matrix':
         object_id = random_gen(object_identifier='B', id_val=id_val)
         # while object_id in object_ids:
         #     object_id = random_gen(object_identifier='B')
         return object_id
-    elif object_type is 'object':
+    elif object_type == 'object':
         object_id = random_gen(object_identifier='A', id_val=id_val)
         return object_id
-    elif object_type is 'boundary':
+    elif object_type == 'boundary':
         object_id = random_gen(object_identifier='C', id_val=id_val)
         return object_id
     else:
@@ -77,7 +78,7 @@ def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
         console.error("2D point prediction not implemented!", verbose=verbose)
         return None
 
-def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
+def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs, diffusivities, verbose):
     """
     Sets the time intervals for model evolution.  An override allows the user to define a custom time interval
     with the risk of poor convergence.
@@ -90,12 +91,17 @@ def override_timestep(timestep, conductivities, spatial_res, spatial_sigfigs):
         # deltaT <= (deltaX^2)/(2*(conductivity))
         # stability requires the maximum usage of conductivity to get the appropriate timestep
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        max_conductivity = max(conductivities)
-        delta_time = (spatial_res**2) / (2 * (max_conductivity))
+        min_diffusivity = min(diffusivities[diffusivities != 0.0])
+        delta_time = (spatial_res**2) / (2 * (min_diffusivity))
         delta_time = round(delta_time, spatial_sigfigs)
         return delta_time
     else:
+        min_diffusivity = min(diffusivities[diffusivities != 0.0])
+        delta_time_test = (spatial_res ** 2) / (2 * (min_diffusivity))
+        delta_time_test = round(delta_time_test, spatial_sigfigs)
         delta_time = timestep
+        if delta_time > delta_time_test:
+            console.error("Warning!  Your selected timestep is greater than the threshold!", verbose=verbose)
         return delta_time
 
 def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x_plus, x_minus, y_plus, y_minus,
@@ -149,30 +155,30 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         else:
             return nearest_coord
 
-    def determine_directional_temps(x, y, z, vertex, directional_temp_dict, vertex_index):
+    def determine_directional_indices(x, y, z, vertex, directional_dict, vertex_index):
         vertex_x, vertex_y, vertex_z = vertex[0], vertex[1], vertex[2]
         if vertex_x > x:
-            directional_temp_dict['x+'].append(vertex_index)
+            directional_dict['x+'].append(vertex_index)
         elif vertex_x < x:
-            directional_temp_dict['x-'].append(vertex_index)
+            directional_dict['x-'].append(vertex_index)
         else:
-            directional_temp_dict['x+'].append(vertex_index)
-            directional_temp_dict['x-'].append(vertex_index)
+            directional_dict['x+'].append(vertex_index)
+            directional_dict['x-'].append(vertex_index)
         if vertex_y > y:
-            directional_temp_dict['y+'].append(vertex_index)
+            directional_dict['y+'].append(vertex_index)
         elif vertex_y < y:
-            directional_temp_dict['y-'].append(vertex_index)
+            directional_dict['y-'].append(vertex_index)
         else:
-            directional_temp_dict['y+'].append(vertex_index)
-            directional_temp_dict['y-'].append(vertex_index)
+            directional_dict['y+'].append(vertex_index)
+            directional_dict['y-'].append(vertex_index)
         if vertex_z > z:
-            directional_temp_dict['z+'].append(vertex_index)
+            directional_dict['z+'].append(vertex_index)
         elif vertex_z < z:
-            directional_temp_dict['z-'].append(vertex_index)
+            directional_dict['z-'].append(vertex_index)
         else:
-            directional_temp_dict['z+'].append(vertex_index)
-            directional_temp_dict['z-'].append(vertex_index)
-        return directional_temp_dict
+            directional_dict['z+'].append(vertex_index)
+            directional_dict['z-'].append(vertex_index)
+        return directional_dict
 
     x, y, z = coord[0], coord[1], coord[2]  # the x, y, z components of the coordinate
     nearest_x, nearest_y, nearest_z = arbitrary_round(coord=coord, spatial_res=spatial_res,
@@ -201,7 +207,7 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         x_minus_coord = nearest_x
     else:
         x_plus_coord = nearest_x
-        x_minus_coord = nearest_x
+        x_minus_coord = round(nearest_x - spatial_res, spatial_sigfigs)
 
     if y_interpolate < nearest_y:
         y_plus_coord = nearest_y
@@ -217,7 +223,7 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         y_minus_coord = nearest_y
     else:
         y_plus_coord = nearest_y
-        y_minus_coord = nearest_y
+        y_minus_coord = round(nearest_y - spatial_res, spatial_sigfigs)
 
     if z_interpolate < nearest_z:
         z_plus_coord = nearest_z
@@ -233,7 +239,7 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         z_minus_coord = nearest_z
     else:
         z_plus_coord = nearest_z
-        z_minus_coord = nearest_z
+        z_minus_coord = round(nearest_z - spatial_res, spatial_sigfigs)
 
     possible_verteces = [
         (x_minus_coord, y_plus_coord, z_plus_coord),
@@ -248,7 +254,7 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
 
     cell_verteces = sorted(set(possible_verteces))
 
-    distances = {}
+    total_distance = 0
     max_distance = 0
     farthest_coord = nearest_coord
     directional_vertices = {
@@ -265,19 +271,21 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
 
     cell_indices = []
     for i in cell_verteces:
-        vertex_index = cell_indices.append(predict_index(coord=i, max_x=max_x, max_y=max_y,
-                                                         max_z=max_z, spatial_res=spatial_res, verbose=verbose))
-        distance = sqrt(((nearest_coord[0] - i[0])**2) + ((nearest_coord[1] - i[1])**2) + ((nearest_coord[2] - i[2])**2))
+        vertex_index = predict_index(coord=i, max_x=max_x, max_y=max_y,
+                      max_z=max_z, spatial_res=spatial_res, verbose=verbose)
+        cell_indices.append(vertex_index)
+        # distance = sqrt(((nearest_coord[0] - i[0])**2) + ((nearest_coord[1] - i[1])**2) + ((nearest_coord[2] - i[2])**2))
+        distance = sqrt(((x - i[0])**2) + ((y - i[1])**2) + ((z - i[2])**2))
         vertex_distances.update({vertex_index: distance})
+        total_distance += distance
         if distance > max_distance:
             max_distance = distance
             farthest_coord = i
-            distances.update({i: distance})
-        determine_directional_temps(x=x, y=y, z=z, directional_temp_dict=directional_vertices, vertex=i,
-                                    vertex_index=vertex_index)
+        determine_directional_indices(x=x, y=y, z=z, directional_dict=directional_vertices, vertex=i, vertex_index=vertex_index)
     farthest_index = predict_index(coord=farthest_coord, max_x=max_x, max_y=max_y, max_z=max_z, spatial_res=spatial_res)
 
-    return nearest_index, cell_indices, cell_verteces, farthest_index, distances, directional_vertices, vertex_distances
+    return nearest_index, cell_indices, cell_verteces, farthest_index, directional_vertices, \
+                                                            vertex_distances, total_distance
 
 def update_position(coord, velocity, delta_time, max_z, spatial_res):
     """

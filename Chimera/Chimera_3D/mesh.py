@@ -33,10 +33,12 @@ class Mesh:
         z_vals = []
         nodes = []
         if self.dimensions is 3:
-            console.nominal("Detected a 3-D system! Generating a {} x {} x {} model!".format(
+            num_nodes = int(((self.x / self.spatial_res) + 1) * ((self.y / self.spatial_res) + 1) * ((self.z / self.spatial_res) + 1))
+            console.nominal("Detected a 3-D system! Generating a {} x {} x {} node model ({} nodes)!".format(
                 round(self.x / self.spatial_res, self.spatial_sigfigs),
                 round(self.y / self.spatial_res, self.spatial_sigfigs),
-                round(self.z / self.spatial_res, self.spatial_sigfigs)),
+                round(self.z / self.spatial_res, self.spatial_sigfigs),
+                num_nodes),
                 verbose=self.verbose)
             z_coords = np.arange(0, self.z + self.spatial_res, self.spatial_res)
             for x in x_coords:
@@ -49,9 +51,11 @@ class Mesh:
                         node = (x, y, z)
                         nodes.append(node)
         else:
-            console.nominal("Detected a 2-D system! Generating a {} x {} model!".format(
+            num_nodes = int(((self.x / self.spatial_res) + 1) * ((self.y / self.spatial_res) + 1))
+            console.nominal("Detected a 2-D system! Generating a {} x {} model ({} nodes)!".format(
                 round(self.x / self.spatial_res, self.spatial_sigfigs),
-                round(self.y / self.spatial_res, self.spatial_sigfigs)),
+                round(self.y / self.spatial_res, self.spatial_sigfigs),
+                num_nodes),
                 verbose=self.verbose)
             for x in x_coords:
                 for y in y_coords:

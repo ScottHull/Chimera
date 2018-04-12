@@ -1,9 +1,10 @@
 import numpy as np
 from Chimera.Chimera_3D import dynamics, backends, heat, console
 
-def object_actions(objects_df, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
+def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
-                   matrix_temperatures, lower_model, upper_model, verbose=True):
+                   matrix_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
+                   verbose, conduction=True):
     object_objects = np.array(objects_df['object'])
     object_object_ids = np.array(objects_df['object_id'])
     object_temperatures = np.array(objects_df['temperature'])
@@ -57,14 +58,19 @@ def object_actions(objects_df, spatial_res, spatial_sigfigs, evolution_time, ini
         # add the heat generated from viscous dissipation to the object
         object_temperatures[object_index] += viscous_heat
         # allow the heat from the object to conduct, assuming only in contact with nearest cell vertex
-        object_conduction = heat.object_conduction(object_temperatures=object_temperatures, object_index=object_index,
-                                                   object_k=object_conductivities[object_index],
-                                                   spatial_res=spatial_res,
-                                                   delta_time=delta_time, mesh_temperatures=matrix_temperatures,
-                                                   nearest_index=cell[0], farthest_index=cell[3],
-                                                   distances=cell[4], directional_vertices=cell[5],
-                                                   vertex_distances=cell[6])
-        print("\n", object_conduction)
+        if conduction:
+            object_conduction = heat.object_conduction(object_temperatures=object_temperatures,
+                                                       object_index=object_index,
+                                                       object_k=object_conductivities[object_index],
+                                                       spatial_res=spatial_res,
+                                                       delta_time=delta_time, mesh_temperatures=matrix_temperatures,
+                                                       nearest_index=cell[0], farthest_index=cell[3],
+                                                       directional_vertices=cell[4],
+                                                       vertex_distances=cell[5], total_distance=cell[6],
+                                                       matrix_k=matrix_conductivities[cell[0]],
+                                                       matrix_ids=matrix_ids, coords=coords,
+                                                       matrix_diffusivities=matrix_diffusivities,
+                                                       spatial_sigfigs=spatial_sigfigs, verbose=verbose)
         console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
             object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
         #  update the dataframes with the new data
@@ -78,4 +84,5 @@ def object_actions(objects_df, spatial_res, spatial_sigfigs, evolution_time, ini
     objects_df['cell_vertices'] = cell_vertices
     objects_df['cell_indices'] = cell_indices
     objects_df['nearest_index'] = nearest_indices
+    objects_df['temperature'] = object_temperatures
     return object_coords, nearest_indices, cell_indices

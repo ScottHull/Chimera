@@ -34,7 +34,7 @@ class plots():
             if heat is True:
                 if self.temperatures is None:
                     self.temperatures = temperatures
-                    self.norm_colors = mpl.colors.Normalize(vmin=2000, vmax=3500)
+                    self.norm_colors = mpl.colors.Normalize(vmin=2000, vmax=2001)
                     self.colorsmap = matplotlib.cm.ScalarMappable(norm=self.norm_colors, cmap='jet')
                     self.colorsmap.set_array(temperatures)
                 # norm_colors = mpl.colors.Normalize(vmin=min(temperatures), vmax=max(temperatures))
