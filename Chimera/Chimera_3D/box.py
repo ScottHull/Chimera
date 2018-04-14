@@ -353,7 +353,7 @@ class Box:
                 temperatures = conduction[0]
                 dT_dts = conduction[1]
                 console.nominal("Finished modeling conduction! (task took {}s)".format(time.time() - conduction_t), verbose=self.verbose)
-            # plot the model's dynamic components
+            # plot the model's dynamic components, remove in the operational version.
             self.plots.plot_cell(object_coords=object_coords, nearest_coords=nearest_indices,
                                  vertex_indices=cell_indices, mesh_coords=coords, max_x=self.max_x,
                                  max_y=self.max_y,
