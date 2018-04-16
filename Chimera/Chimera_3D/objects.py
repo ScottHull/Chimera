@@ -3,7 +3,7 @@ from Chimera.Chimera_3D import dynamics, backends, heat, console
 
 def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
-                   matrix_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
+                   mesh_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
                    verbose, conduction=True):
     object_objects = np.array(objects_df['object'])
     object_object_ids = np.array(objects_df['object_id'])
@@ -18,6 +18,7 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
     nearest_indices = np.array(objects_df['nearest_index'], dtype=object)
     drag_coeffs = np.array(objects_df['drag_coeff'])
     cps = np.array(objects_df['cp'])
+    copy_mesh_temperatures = mesh_temperatures
     for object_index, object_object in enumerate(object_objects):
         object_id = object_object_ids[object_index]  # get the current object id
         coord = object_coords[object_index]  # get the current object coordinate
@@ -60,10 +61,11 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         # allow the heat from the object to conduct, assuming only in contact with nearest cell vertex
         if conduction:
             object_conduction = heat.object_conduction(object_temperatures=object_temperatures,
+                                                       copy_mesh_temperatures=copy_mesh_temperatures,
                                                        object_index=object_index,
                                                        object_k=object_conductivities[object_index],
                                                        spatial_res=spatial_res,
-                                                       delta_time=delta_time, mesh_temperatures=matrix_temperatures,
+                                                       delta_time=delta_time, mesh_temperatures=mesh_temperatures,
                                                        nearest_index=cell[0], farthest_index=cell[3],
                                                        directional_vertices=cell[4],
                                                        vertex_distances=cell[5], total_distance=cell[6],

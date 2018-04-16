@@ -149,21 +149,21 @@ def multiprocess_conduction_manager(coords, len_coords, x_plus_indices, x_minus_
 
     return update_temps, dT_dt_list
 
-def object_conduction(object_temperatures, object_index, object_k, matrix_k, mesh_temperatures, nearest_index, farthest_index,
-                      spatial_res, delta_time, directional_vertices, vertex_distances, total_distance, matrix_ids,
-                      coords, matrix_diffusivities, spatial_sigfigs, verbose):
+def object_conduction(object_temperatures, object_index, object_k, matrix_k, mesh_temperatures, copy_mesh_temperatures, 
+                      nearest_index, farthest_index, spatial_res, delta_time, directional_vertices, vertex_distances, 
+                      total_distance, matrix_ids, coords, matrix_diffusivities, spatial_sigfigs, verbose):
 
     box_spatial_res = (spatial_res / 2)
     box_delta_time = backends.override_timestep(spatial_res=box_spatial_res, conductivities=None,
                                                 diffusivities=np.array([matrix_diffusivities[nearest_index]]),
                                                 spatial_sigfigs=spatial_sigfigs, timestep=False, verbose=verbose)
     object_temp = object_temperatures[object_index]
-    x_plus_temps = [mesh_temperatures[i] for i in directional_vertices["x+"]]
-    x_minus_temps = [mesh_temperatures[i] for i in directional_vertices["x-"]]
-    y_plus_temps = [mesh_temperatures[i] for i in directional_vertices["y+"]]
-    y_minus_temps = [mesh_temperatures[i] for i in directional_vertices["y-"]]
-    z_plus_temps = [mesh_temperatures[i] for i in directional_vertices["z+"]]
-    z_minus_temps = [mesh_temperatures[i] for i in directional_vertices["z-"]]
+    x_plus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["x+"]]
+    x_minus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["x-"]]
+    y_plus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["y+"]]
+    y_minus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["y-"]]
+    z_plus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["z+"]]
+    z_minus_temps = [copy_mesh_temperatures[i] for i in directional_vertices["z-"]]
     d2T_dx2 = ((sum(x_plus_temps) / len(x_plus_temps)) - (2 * object_temp) + (sum(x_minus_temps) / len(x_minus_temps))) / (
                 (box_spatial_res ** 2))
     d2T_dy2 = ((sum(y_plus_temps) / len(y_plus_temps)) - (2 * object_temp) + (sum(y_minus_temps) / len(y_minus_temps))) / (

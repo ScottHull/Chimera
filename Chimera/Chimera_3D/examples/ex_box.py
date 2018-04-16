@@ -34,7 +34,7 @@ b.insert_matrix(material='test_matrix',
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate)
-for i in range(500):
+for i in range(20):
     b.insert_object(material='test_object',
                     temperature=2000,
                     radius=0.01,

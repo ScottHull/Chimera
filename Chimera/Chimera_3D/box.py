@@ -330,7 +330,7 @@ class Box:
                 self.evolution_time, self.delta_time), verbose=self.verbose)
             # temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
-            object_coords, nearest_indices, cell_indices = objects.object_actions(matrix_temperatures=temperatures,
+            object_coords, nearest_indices, cell_indices = objects.object_actions(mesh_temperatures=temperatures,
                                     objects_df=self.objects,
                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
                                     evolution_time=self.evolution_time, delta_time=self.delta_time,
