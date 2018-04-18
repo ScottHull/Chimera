@@ -326,3 +326,10 @@ def chunk_array(array, num_chunks, len_array):
             return chunks
     else:
         return array
+
+
+def int_to_float(x):  # converts integer values into floats in a Pandas dataframe
+    try:
+        return np.float(x) # if a number, it is converted to a float
+    except:
+        return np.nan # if not a number, it is NaN

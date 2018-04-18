@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 import multiprocessing as mp
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects, chemistry
 import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
@@ -11,7 +11,7 @@ import warnings; warnings.filterwarnings('ignore')
 class Box:
 
     def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True, settling_mode='stokes terminal',
-                 radioactivity=True, chemistry=True, verbose=True):
+                 radioactivity=True, chem=True, verbose=True):
         self.mesh = pd.DataFrame({
         })
         self.objects = pd.DataFrame({
@@ -19,7 +19,6 @@ class Box:
         self.conduction = conduction
         self.settling_mode = settling_mode
         self.radioactivity = radioactivity
-        self.chemistry = chemistry
         self.initial_time = evolution_time
         self.evolution_time = evolution_time
         self.verbose = verbose
@@ -42,6 +41,8 @@ class Box:
         self.num_workers = num_processors
         if self.num_workers > mp.cpu_count():
             self.num_workers = mp.cpu_count()
+        if chem is True:
+            self.chemistry = chemistry.Chemistry(box=self)
 
 
     def build(self, spatial_res, x, y, z=None):
@@ -118,7 +119,7 @@ class Box:
                       verbose=self.verbose)
         return self.mesh
 
-    def insert_matrix(self, material, temperature, conductivity, density, viscosity, depth_range, heat_capacity):
+    def insert_matrix(self, material, temperature, conductivity, density, viscosity, depth_range, heat_capacity, composition):
         """
         Insert a matrix into the model.
         :param material:
@@ -157,6 +158,7 @@ class Box:
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
                 self.id_val += 1
+        # reset the dataframe columns
         self.mesh['temperature'] = temperatures
         self.mesh['object'] = objects
         self.mesh['object_id'] = object_ids
@@ -165,8 +167,12 @@ class Box:
         self.mesh['conductivity'] = conductivities
         self.mesh['diffusivity'] = diffusivities
         self.matrix = True
+        # insert composition into the chemistry instance so it can be tracked independently to avoid
+        # box getting garbled up
+        self.chemistry.insertMatrixComposition(material=material, composition=composition)
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                                 time.time() - t_start), verbose=self.verbose)
+        return material
 
     def insert_boundary(self, temperature, depth_range, location, material='boundary'):
         """

@@ -27,7 +27,7 @@ b = box.Box(evolution_time=25,
             multiprocessing=False,
             num_processors=2)
 b.build(spatial_res=spatial_res, x=x, y=y, z=z)
-b.insert_matrix(material='test_matrix',
+matrix = b.insert_matrix(material='test_matrix',
                 temperature=2000,
                 depth_range=[round(0.0 + spatial_res, 2), round(z - spatial_res, 2)],
                 conductivity=conductivity_silicate,
