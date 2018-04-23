@@ -5,6 +5,7 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
                    mesh_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
                    verbose, conduction=True):
+    # extract object information & parameters from the objects dataframe contained in the box
     object_objects = np.array(objects_df['object'])
     object_object_ids = np.array(objects_df['object_id'])
     object_temperatures = np.array(objects_df['temperature'])
@@ -24,15 +25,14 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         coord = object_coords[object_index]  # get the current object coordinate
         #  interpolate to find the cell in which the object exists
         #  calculate the object's settling velocity
-        if evolution_time == initial_time:
-            initial_cell = backends.interpolate_cell(coord=coord, spatial_res=spatial_res,
-                                            spatial_sigfigs=spatial_sigfigs, max_x=max_x,
-                                            max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
-                                            y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
-                                            verbose=verbose)
-            nearest_indices[object_index] = initial_cell[0]
-            cell_indices[object_index] = initial_cell[1]
-            cell_vertices[object_index] = initial_cell[2]
+        cell = backends.interpolate_cell(coord=coord, spatial_res=spatial_res,
+                                        spatial_sigfigs=spatial_sigfigs, max_x=max_x,
+                                        max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
+                                        y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
+                                        verbose=verbose)
+        nearest_indices[object_index] = cell[0]
+        cell_indices[object_index] = cell[1]
+        cell_vertices[object_index] = cell[2]
         velocity = dynamics.stokes_terminal(density=object_densities[object_index],
                                             density_matrix=matrix_densities[nearest_indices[object_index]],
                                             drag_coeff=drag_coeffs[object_index], radius=object_radii[object_index],
@@ -41,12 +41,12 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         #  get the object's new coordinates based on the object's velocity
         updated_coords, distance_travelled = backends.update_position(coord=coord, velocity=velocity, delta_time=delta_time,
                                          max_z=lower_model, spatial_res=spatial_res)
-        # determine the mesh cell within which the object resides
         cell = backends.interpolate_cell(coord=updated_coords, spatial_res=spatial_res,
-                                spatial_sigfigs=spatial_sigfigs, max_x=max_x,
-                                max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
-                                y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
-                                verbose=verbose)
+                                         spatial_sigfigs=spatial_sigfigs, max_x=max_x,
+                                         max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
+                                         y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
+                                         verbose=verbose)
+        # determine the mesh cell within which the object resides
         # determine how much heat was produced through drag on the object
         viscous_heat = heat.viscous_dissipation(drag_coeff=drag_coeffs[object_index],
                                                 cp=cps[object_index],

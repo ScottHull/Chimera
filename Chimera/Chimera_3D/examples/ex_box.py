@@ -3,7 +3,7 @@ import random
 
 x = 10
 y = 10
-z = 30
+z = 10
 spatial_res = 0.5
 
 density_silicate = 3750
@@ -22,19 +22,20 @@ b = box.Box(evolution_time=25,
             conduction=True,
             settling_mode='stokes terminal',
             radioactivity=True,
-            chemistry=True,
+            chem=False,
             verbose=True,
             multiprocessing=False,
             num_processors=2)
 b.build(spatial_res=spatial_res, x=x, y=y, z=z)
-matrix = b.insert_matrix(material='test_matrix',
+b.insert_matrix(material='test_matrix',
                 temperature=2000,
                 depth_range=[round(0.0 + spatial_res, 2), round(z - spatial_res, 2)],
                 conductivity=conductivity_silicate,
                 density=density_silicate,
                 viscosity=viscosity_silicate,
-                heat_capacity=cp_silicate)
-for i in range(20):
+                heat_capacity=cp_silicate,
+                composition={})
+for i in range(1):
     b.insert_object(material='test_object',
                     temperature=2000,
                     radius=0.01,
@@ -46,8 +47,20 @@ for i in range(20):
                     density=density_liq_fe,
                     drag_coeff=drag_coeff_liq_fe,
                     cp=cp_liq_fe)
+b.insertObjectGenerator(generator_name='test',
+                        num_per_iteration=5,
+                        material='test_gen_object',
+                        temperature=2000,
+                        radius=0.01,
+                        x_range=[0, x],
+                        y_range=[0, y],
+                        z_range=[spatial_res * 3, spatial_res * 3 + spatial_res],
+                        conductivity=conductivity_liq_fe,
+                        density=density_liq_fe,
+                        drag_coeff=drag_coeff_liq_fe,
+                        cp=cp_liq_fe)
 b.insert_boundary(temperature=2000, depth_range=[0.0, round(0.0 + spatial_res), 2], location='top')
 b.insert_boundary(temperature=2000, depth_range=[round(z - spatial_res, 2), z], location='bottom')
 b.verify_box()
-b.update(animate_model=True, timestep=1.0)
+b.update(animate_model=False, timestep=1.0)
 b.to_csv()

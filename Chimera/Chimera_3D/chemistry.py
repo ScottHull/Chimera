@@ -41,6 +41,8 @@ class Chemistry:
 
         return self.partitioning
 
+
+
     def equilibrate(self, element, temperature, pressure, fo2):
         partitioning = self.partitioning[element]['intercept'] \
                        + self.partitioning[element]['temperature'] * temperature \

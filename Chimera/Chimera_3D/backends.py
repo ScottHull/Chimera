@@ -1,4 +1,4 @@
-from Chimera.Chimera_3D import console, dynamics, heat
+from Chimera.Chimera_3D import console, dynamics, heat, box
 import numpy as np
 from math import sqrt
 

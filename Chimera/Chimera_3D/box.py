@@ -1,8 +1,10 @@
 import sys
+from functools import partial
 import pandas as pd
 import numpy as np
 import time
 import multiprocessing as mp
+from random import uniform
 from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects, chemistry
 import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
@@ -31,6 +33,7 @@ class Box:
         self.matrix = None
         self.object = None
         self.boundary = None
+        self.chem = chemistry
         self.lower_model = self.max_z
         self.upper_model = 0.0
         self.id_val = 0
@@ -43,6 +46,7 @@ class Box:
             self.num_workers = mp.cpu_count()
         if chem is True:
             self.chemistry = chemistry.Chemistry(box=self)
+        self.objectGenerators = {}
 
 
     def build(self, spatial_res, x, y, z=None):
@@ -169,7 +173,8 @@ class Box:
         self.matrix = True
         # insert composition into the chemistry instance so it can be tracked independently to avoid
         # box getting garbled up
-        self.chemistry.insertMatrixComposition(material=material, composition=composition)
+        if self.chem is True:
+            self.chemistry.insertMatrixComposition(material=material, composition=composition)
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                                 time.time() - t_start), verbose=self.verbose)
         return material
@@ -210,6 +215,8 @@ class Box:
             self.lower_model = round(depth_range[0] - (2 * self.spatial_res), self.spatial_sigfigs)
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
                                                                                               time.time() - t_start), verbose=self.verbose)
+
+        return
 
     def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z=None):
         """
@@ -274,6 +281,32 @@ class Box:
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
                                                                         time.time() - t_start), verbose=self.verbose)
 
+        return
+
+    def insertObjectGenerator(self, generator_name, material, num_per_iteration, temperature, radius, conductivity,
+                              density, drag_coeff, cp, x_range, y_range, z_range):
+
+        def objectGenerator(instance, material, num_per_iteration, temperature, radius, conductivity, density, drag_coeff, cp,
+                              x_range, y_range, z_range):
+
+            for i in range(num_per_iteration):
+                x = uniform(x_range[0], x_range[1])
+                y = uniform(y_range[0], y_range[1])
+                z = uniform(z_range[0], z_range[1])
+                instance.insert_object(material=material, conductivity=conductivity, temperature=temperature,
+                                   radius=radius, density=density, drag_coeff=drag_coeff, cp=cp, x=x, y=y, z=z)
+
+        self.objectGenerators.update({generator_name: partial(objectGenerator, instance=self, material=material,
+                                                                      num_per_iteration=num_per_iteration,
+                                                                      temperature=temperature, radius=radius,
+                                                                      conductivity=conductivity, density=density,
+                                                                      drag_coeff=drag_coeff, cp=cp,
+                                                                      x_range=x_range, y_range=y_range,
+                                                                      z_range=z_range)})
+
+
+
+
     def verify_box(self):
         """
         Verifies that the box is constructed properly.
@@ -334,6 +367,9 @@ class Box:
         while auto_update is True and self.evolution_time > 0:
             console.nominal("Model time at: {} (timestep: {})...".format(
                 self.evolution_time, self.delta_time), verbose=self.verbose)
+            # run the object generator functions stored in the instance, if any
+            for i in self.objectGenerators:
+                self.objectGenerators[i]()
             # temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
             object_coords, nearest_indices, cell_indices = objects.object_actions(mesh_temperatures=temperatures,
@@ -347,7 +383,7 @@ class Box:
                                     verbose=self.verbose, conduction=self.conduction, matrix_conductivities=conductivities,
                                     matrix_ids=object_ids, coords=coords, matrix_diffusivities=diffusivities)
             if self.conduction:
-                # finite central difference conductivity across entire box
+                # finite central difference conductivity across entire box if conduction is specified
                 conduction_t = time.time()
                 conduction = heat.conduction(coords=coords, len_coords=len_coords, x_plus_indices=x_plus, x_minus_indices=x_minus,
                                             y_plus_indices=y_plus, y_minus_indices=y_minus, z_plus_indices=z_plus,
@@ -365,7 +401,7 @@ class Box:
                                  max_y=self.max_y,
                                  max_z=self.max_z, temperatures=temperatures, spatial_res=self.spatial_res,
                                  model_time=self.evolution_time,
-                                 save=animate_model, show=False, heat=self.conduction)
+                                 save=animate_model, show=True, heat=self.conduction)
             # update the new time in the model
             new_evolution_time = round(self.evolution_time - self.delta_time, self.spatial_sigfigs)
             self.evolution_time = new_evolution_time
