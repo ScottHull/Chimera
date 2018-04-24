@@ -261,7 +261,7 @@ class Box:
         velocities.append((0.0, 0.0, 0.0))
         drag_coeffs.append(float(drag_coeff))
         cps.append(float(cp))
-        object_headers = [self.objects.columns.values]
+        # object_headers = [self.objects.columns.values]
         self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
         self.objects['object_id'] = object_ids
@@ -331,7 +331,7 @@ class Box:
             mesh[str(key)] = val
         return mesh
 
-    def update(self, auto_update=True, timestep=False, animate_model=False):
+    def update(self, auto_update=True, timestep=False, animate_model=False, show_model=False):
         """
         Update the model over one time step. Has the ability to run the model to completion.
         :param auto_update:
@@ -401,7 +401,7 @@ class Box:
                                  max_y=self.max_y,
                                  max_z=self.max_z, temperatures=temperatures, spatial_res=self.spatial_res,
                                  model_time=self.evolution_time,
-                                 save=animate_model, show=True, heat=self.conduction)
+                                 save=animate_model, show=show_model, heat=self.conduction)
             # update the new time in the model
             new_evolution_time = round(self.evolution_time - self.delta_time, self.spatial_sigfigs)
             self.evolution_time = new_evolution_time
