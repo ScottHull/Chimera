@@ -4,7 +4,7 @@ from Chimera.Chimera_3D import dynamics, backends, heat, console
 def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
                    mesh_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
-                   verbose, conduction=True):
+                   verbose, chem, chemistry, mesh_fO2, mesh_pressures, mesh_objects, conduction=True):
     # extract object information & parameters from the objects dataframe contained in the box
     object_objects = np.array(objects_df['object'])
     object_object_ids = np.array(objects_df['object_id'])
@@ -18,6 +18,7 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
     cell_indices = np.array(objects_df['cell_indices'], dtype=object)
     nearest_indices = np.array(objects_df['nearest_index'], dtype=object)
     drag_coeffs = np.array(objects_df['drag_coeff'])
+    compositions = np.array(objects_df['composition'])
     cps = np.array(objects_df['cp'])
     copy_mesh_temperatures = mesh_temperatures
     for object_index, object_object in enumerate(object_objects):
@@ -73,14 +74,19 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                                                        matrix_ids=matrix_ids, coords=coords,
                                                        matrix_diffusivities=matrix_diffusivities,
                                                        spatial_sigfigs=spatial_sigfigs, verbose=verbose)
+        if chem:
+            compositions[object_index], chemistry.matrix[mesh_objects[cell[0]]] = chemistry.equilibrate(
+                object_composition=compositions[object_index], fo2=mesh_fO2[cell[0]],
+                temperature=mesh_temperatures[cell[0]], pressure=mesh_pressures[cell[0]],
+                matrix_composition=chemistry.matrix[mesh_objects[cell[0]]])
         console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
             object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
         #  update the dataframes with the new data
         object_velocities[object_index] = velocity
         object_coords[object_index] = updated_coords
-        nearest_indices[object_index] = cell[0]
-        cell_indices[object_index] = cell[1]
-        cell_vertices[object_index] = cell[2]
+        nearest_indices[object_index] = cell[0]  # nearest index
+        cell_indices[object_index] = cell[1]  # cell indices
+        cell_vertices[object_index] = cell[2]  # cell vertices
     objects_df['coords'] = object_coords
     objects_df['velocity'] = object_velocities
     objects_df['cell_vertices'] = cell_vertices

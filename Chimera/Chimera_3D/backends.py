@@ -6,9 +6,9 @@ def set_columns(mesh_df, object_df, coords_range):
 
     mesh_columns = ["object", "object_id", "xplus_index", "xminus_index", "yplus_index", "yminus_index",
                     "zplus_index", "zminus_index", "temperature", "dT_dt", "conductivity", "viscosity", "density",
-                    "diffusivity"]
+                    "diffusivity", 'fO2', 'pressure']
     object_columns = ["object", "object_id", "coords", "temperature", "radius", "conductivity", "density", "velocity",
-                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp", "diffusivity"]
+                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp", "diffusivity", "composition"]
     for i in mesh_columns:
         if i == "object" or i == "object_id":
             mesh_df[i] = ["NONE" for i in coords_range]

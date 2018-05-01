@@ -10,7 +10,7 @@ import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
 
-class Box:
+class Box():
 
     def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True, settling_mode='stokes terminal',
                  radioactivity=True, chem=True, verbose=True):
@@ -33,7 +33,7 @@ class Box:
         self.matrix = None
         self.object = None
         self.boundary = None
-        self.chem = chemistry
+        self.chem = chem
         self.lower_model = self.max_z
         self.upper_model = 0.0
         self.id_val = 0
@@ -44,8 +44,7 @@ class Box:
         self.num_workers = num_processors
         if self.num_workers > mp.cpu_count():
             self.num_workers = mp.cpu_count()
-        if chem is True:
-            self.chemistry = chemistry.Chemistry(box=self)
+        self.chemistry = chemistry.Chemistry(box=self)
         self.objectGenerators = {}
 
 
@@ -123,7 +122,8 @@ class Box:
                       verbose=self.verbose)
         return self.mesh
 
-    def insert_matrix(self, material, temperature, conductivity, density, viscosity, depth_range, heat_capacity, composition):
+    def insert_matrix(self, material, temperature, conductivity, fO2, density, viscosity, depth_range, heat_capacity,
+                      pressure, composition={}):
         """
         Insert a matrix into the model.
         :param material:
@@ -144,6 +144,8 @@ class Box:
         densities = np.array(self.mesh['density'])
         viscosities = np.array(self.mesh['viscosity'])
         diffusivities = np.array(self.mesh['diffusivity'])
+        fO2s = np.array(self.mesh['fO2'])
+        pressures = np.array(self.mesh['pressure'])
         self.conductivities.append(conductivity)
         len_coords = len(coords)
         # insert the matrix into coordinate positions defined by the user's z-range
@@ -159,6 +161,8 @@ class Box:
                 objects[index] = material
                 densities[index] = float(density)
                 viscosities[index] = float(viscosity)
+                fO2s[index] = float(fO2)
+                pressures[index] = float(pressure)
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
                 self.id_val += 1
@@ -170,6 +174,8 @@ class Box:
         self.mesh['viscosity'] = viscosities
         self.mesh['conductivity'] = conductivities
         self.mesh['diffusivity'] = diffusivities
+        self.mesh['fO2'] = fO2s
+        self.mesh['pressure'] = pressures
         self.matrix = True
         # insert composition into the chemistry instance so it can be tracked independently to avoid
         # box getting garbled up
@@ -218,7 +224,7 @@ class Box:
 
         return
 
-    def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z=None):
+    def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z, composition={}):
         """
         Insert an object in the the objects dataframe.
         :param material:
@@ -249,6 +255,7 @@ class Box:
         conductivities = self.objects['conductivity'].tolist()
         drag_coeffs = self.objects['drag_coeff'].tolist()
         cps = self.objects['cp'].tolist()
+        compositions = self.objects['composition'].tolist()
         console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
         objects.append(material)
         object_ids.append(backends.generate_object_id(object_type='object',
@@ -261,6 +268,8 @@ class Box:
         velocities.append((0.0, 0.0, 0.0))
         drag_coeffs.append(float(drag_coeff))
         cps.append(float(cp))
+        if self.chem:
+            compositions.append(composition)
         # object_headers = [self.objects.columns.values]
         self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
@@ -276,6 +285,8 @@ class Box:
         self.objects['nearest_index'] = np.NAN
         self.objects['cell_indices'] = np.NAN
         self.objects['cell_vertices'] = np.NAN
+        if self.chem:
+            self.objects['composition'] = compositions
         self.id_val += 1
         self.object = True
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
@@ -348,11 +359,14 @@ class Box:
         z_plus = np.array(self.mesh['zplus_index'])
         z_minus = np.array(self.mesh['zminus_index'])
         object_ids = np.array(self.mesh['object_id'])
+        mesh_objects = np.array(self.mesh['object'])
         conductivities = np.array(self.mesh['conductivity'])
         viscosity = np.array(self.mesh['viscosity'])
         density = np.array(self.mesh['density'])
         diffusivities = np.array(self.mesh['diffusivity'])
         temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
+        fO2s = np.array(self.mesh['fO2'])
+        pressures = np.array(self.mesh['pressure'])
         dT_dts = np.array(self.mesh['dT_dt'])
         mesh_indices = np.array(self.mesh.index)
         len_coords = len(coords)
@@ -381,7 +395,9 @@ class Box:
                                     y_minus=y_minus, z_plus=z_plus, z_minus=z_minus, max_x=self.max_x, max_y=self.max_y,
                                     max_z=self.max_z, lower_model=self.lower_model, upper_model=self.upper_model,
                                     verbose=self.verbose, conduction=self.conduction, matrix_conductivities=conductivities,
-                                    matrix_ids=object_ids, coords=coords, matrix_diffusivities=diffusivities)
+                                    matrix_ids=object_ids, coords=coords, matrix_diffusivities=diffusivities,
+                                    chem=self.chem, chemistry=self.chemistry, mesh_fO2=fO2s, mesh_objects=mesh_objects,
+                                    mesh_pressures=pressures)
             if self.conduction:
                 # finite central difference conductivity across entire box if conduction is specified
                 conduction_t = time.time()

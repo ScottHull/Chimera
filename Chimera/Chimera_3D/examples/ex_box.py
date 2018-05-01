@@ -18,11 +18,11 @@ cp_liq_fe = 825
 conductivity_liq_fe = 0.45
 drag_coeff_liq_fe = 0.2
 
-b = box.Box(evolution_time=25,
-            conduction=True,
+b = box.Box(evolution_time=5,
+            conduction=False,
             settling_mode='stokes terminal',
             radioactivity=True,
-            chem=False,
+            chem=True,
             verbose=True,
             multiprocessing=False,
             num_processors=2)
@@ -37,7 +37,9 @@ b.insert_matrix(material='test_matrix',
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate,
-                composition={})
+                composition={'w': 120.0},
+                fO2=-1.5,
+                pressure=2000)
 for i in range(1):
     b.insert_object(material='test_object',
                     temperature=2000,
@@ -48,19 +50,20 @@ for i in range(1):
                     conductivity=conductivity_liq_fe,
                     density=density_liq_fe,
                     drag_coeff=drag_coeff_liq_fe,
-                    cp=cp_liq_fe)
-b.insertObjectGenerator(generator_name='test',
-                        num_per_iteration=5,
-                        material='test_gen_object',
-                        temperature=2000,
-                        radius=0.01,
-                        x_range=[0, x],
-                        y_range=[0, y],
-                        z_range=[spatial_res * 3, spatial_res * 3 + spatial_res],
-                        conductivity=conductivity_liq_fe,
-                        density=density_liq_fe,
-                        drag_coeff=drag_coeff_liq_fe,
-                        cp=cp_liq_fe)
+                    cp=cp_liq_fe,
+                    composition={'w': 0.0})
+# b.insertObjectGenerator(generator_name='test',
+#                         num_per_iteration=5,
+#                         material='test_gen_object',
+#                         temperature=2000,
+#                         radius=0.01,
+#                         x_range=[0, x],
+#                         y_range=[0, y],
+#                         z_range=[spatial_res * 3, spatial_res * 3 + spatial_res],
+#                         conductivity=conductivity_liq_fe,
+#                         density=density_liq_fe,
+#                         drag_coeff=drag_coeff_liq_fe,
+#                         cp=cp_liq_fe)
 b.insert_boundary(temperature=2000,
                   depth_range=[0.0, round(0.0 + spatial_res), 2],
                   location='top')
@@ -69,6 +72,6 @@ b.insert_boundary(temperature=2000,
                   location='bottom')
 b.verify_box()
 b.update(animate_model=False,
-         show_model=True,
+         show_model=False,
          timestep=1.0)
 b.to_csv()
