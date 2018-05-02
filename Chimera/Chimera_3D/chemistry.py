@@ -18,7 +18,7 @@ class Chemistry:
         # automatically calculate the partitioning behavior of the object
         for i in composition:
             if i not in self.partitioning.keys():
-                self.regressPartitioning(element=i)
+                self.regressPartitioning(element=i.lower())
         return None
 
     def regressPartitioning(self, element):
@@ -41,13 +41,14 @@ class Chemistry:
 
 
 
-    def equilibrate(self, object_composition, temperature, pressure, fo2, matrix_composition):
+    def equilibrate(self, object_composition, temperature, pressure, fo2, matrix_material):
         # D = C_liquid / C_solid
         for element in object_composition:
             D = self.partitioning[element]['intercept'] \
-                           + self.partitioning[element]['temperature'] * temperature \
-                           + self.partitioning[element]['pressure'] * pressure \
-                           + self.partitioning[element]['fo2'] * fo2
-            new_object_conc = object_composition[element] + (matrix_composition[element] / D)  # c_solid = C_liquid / D
-            new_matrix_conc = object_composition[element] * D # C_liquid = D * C_solid
-            return new_object_conc, new_matrix_conc
+                           + (self.partitioning[element]['temperature'] * temperature) \
+                           + (self.partitioning[element]['pressure'] * pressure) \
+                           + (self.partitioning[element]['fo2'] * fo2)
+            print('here', element, self.matrix[matrix_material])
+            object_composition[element] =  object_composition[element] + (self.matrix[matrix_material][element] / D)  # c_solid = C_liquid / D
+            self.matrix[matrix_material][element] = object_composition[element] * D # C_liquid = D * C_solid
+        return

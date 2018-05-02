@@ -72,6 +72,7 @@ class plots():
                 self.plot_cell_save = True
             if show is True:
                 plt.show()
+            return
 
     def animate(self, initial_time):
         if self.plot_cell_save is True:
@@ -82,3 +83,4 @@ class plots():
             animation = mpy.ImageSequenceClip(frames, fps=(initial_time / (initial_time / 3)), load_images=True)
             os.chdir(home_dir)
             animation.write_gif('plot_cell.gif', fps=(initial_time / (initial_time / 3)))
+            return

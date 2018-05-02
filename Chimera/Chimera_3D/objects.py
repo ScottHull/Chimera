@@ -75,10 +75,13 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                                                        matrix_diffusivities=matrix_diffusivities,
                                                        spatial_sigfigs=spatial_sigfigs, verbose=verbose)
         if chem:
-            compositions[object_index], chemistry.matrix[mesh_objects[cell[0]]] = chemistry.equilibrate(
+            print(mesh_objects)
+            print(cell[0])
+            print(mesh_objects[cell[0]])
+            chemistry.equilibrate(
                 object_composition=compositions[object_index], fo2=mesh_fO2[cell[0]],
                 temperature=mesh_temperatures[cell[0]], pressure=mesh_pressures[cell[0]],
-                matrix_composition=chemistry.matrix[mesh_objects[cell[0]]])
+                matrix_material=mesh_objects[cell[0]])
         console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
             object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
         #  update the dataframes with the new data

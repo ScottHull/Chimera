@@ -37,7 +37,7 @@ b.insert_matrix(material='test_matrix',
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate,
-                composition={'w': 120.0},
+                composition={'w': 100000000.0},
                 fO2=-1.5,
                 pressure=2000)
 for i in range(1):
