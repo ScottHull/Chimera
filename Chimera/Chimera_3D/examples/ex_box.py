@@ -37,9 +37,9 @@ b.insert_matrix(material='test_matrix',
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate,
-                composition={'w': 100000000.0},
+                composition={'w': 100.0},
                 fO2=-1.5,
-                pressure=2000)
+                pressure=1)
 for i in range(1):
     b.insert_object(material='test_object',
                     temperature=2000,
@@ -51,7 +51,7 @@ for i in range(1):
                     density=density_liq_fe,
                     drag_coeff=drag_coeff_liq_fe,
                     cp=cp_liq_fe,
-                    composition={'w': 0.0})
+                    composition={'w': 1.0})
 # b.insertObjectGenerator(generator_name='test',
 #                         num_per_iteration=5,
 #                         material='test_gen_object',

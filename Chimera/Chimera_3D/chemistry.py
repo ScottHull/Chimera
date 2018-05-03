@@ -42,13 +42,26 @@ class Chemistry:
 
 
     def equilibrate(self, object_composition, temperature, pressure, fo2, matrix_material):
-        # D = C_liquid / C_solid
+        # D = C_solid / C_liquid
         for element in object_composition:
-            D = self.partitioning[element]['intercept'] \
+            conc_object = object_composition[element]
+            conc_matrix = self.matrix[matrix_material][element]
+            predicted_D = self.partitioning[element]['intercept'] \
                            + (self.partitioning[element]['temperature'] * temperature) \
                            + (self.partitioning[element]['pressure'] * pressure) \
                            + (self.partitioning[element]['fo2'] * fo2)
-            print('here', element, self.matrix[matrix_material])
-            object_composition[element] =  object_composition[element] + (self.matrix[matrix_material][element] / D)  # c_solid = C_liquid / D
-            self.matrix[matrix_material][element] = object_composition[element] * D # C_liquid = D * C_solid
+            current_D = conc_object / conc_matrix
+            # we must introduce a factor to change the current partitioning coefficient to the new one
+            # adjust = predicted_D / current_D = predicted_D * (conc_liquid / conc_solid)
+            adjust = predicted_D / current_D
+            if adjust > 1:  # need to increase the concentration in the object
+                delta_conc = ((predicted_D * conc_matrix) - conc_object) / (1.0 + predicted_D)
+                object_composition[element] += delta_conc
+                self.matrix[matrix_material][element] -= delta_conc
+            elif adjust < 1:  # need to increase the concentration in the matrix
+                delta_conc = ((predicted_D * conc_matrix) - conc_object) / (-1.0 - predicted_D)
+                object_composition[element] -= delta_conc
+                self.matrix[matrix_material][element] += delta_conc
+            else:  # at equilibrium, need to do nothing
+                pass
         return
