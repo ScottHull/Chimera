@@ -31,15 +31,19 @@ b.build(spatial_res=spatial_res,
         y=y,
         z=z)
 b.insert_matrix(material='test_matrix',
-                temperature=2000,
                 depth_range=[round(0.0 + spatial_res, 2), round(z - spatial_res, 2)],
                 conductivity=conductivity_silicate,
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate,
                 composition={'w': 100.0},
+                temperature=2000,
+                pressure=1,
                 fO2=-1.5,
-                pressure=1)
+                grad_temperature=1,
+                grad_pressure=2,
+                grad_fO2=-0.01
+                )
 for i in range(1):
     b.insert_object(material='test_object',
                     temperature=2000,

@@ -27,7 +27,7 @@ class Box():
         self.max_x = 0.0
         self.max_y = 0.0
         self.max_z = 0.0
-        self.spatial_res = 0.0
+        self.spatial_res = 0
         self.spatial_sigfigs = 0.0
         self.dimension = None
         self.matrix = None
@@ -68,7 +68,7 @@ class Box():
         console.nominal("Building mesh...", verbose=self.verbose)
         # instantiate the mesh
         m = mesh.Mesh(spatial_res=spatial_res, x=x, y=y, z=z, verbose=self.verbose)
-        self.spatial_sigfigs = m.get_spatial_sigfigs()
+        self.spatial_sigfigs = int(m.get_spatial_sigfigs())
         console.nominal("Assigning mesh to dataframe...", verbose=self.verbose)
         # construct the mesh
         m.build(df=self.mesh)
@@ -123,7 +123,7 @@ class Box():
         return self.mesh
 
     def insert_matrix(self, material, temperature, conductivity, fO2, density, viscosity, depth_range, heat_capacity,
-                      pressure, composition={}):
+                      pressure, composition={}, grad_temperature=0.0, grad_pressure=0.0, grad_fO2=0.0):
         """
         Insert a matrix into the model.
         :param material:
@@ -151,18 +151,23 @@ class Box():
         # insert the matrix into coordinate positions defined by the user's z-range
         # TODO: we can limit recursion time by using the index prediction equation here
         for coord in coords:
-            if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
+            # z = coords[2][self.dimension - 1]
+            z = coord[2]
+            if depth_range[0] <= z <= depth_range[1]:
                 index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
                                                spatial_res=self.spatial_res, verbose=self.verbose)
                 console.nominal("Inserting matrix ({}) at {}...".format(material, coord), verbose=self.verbose)
-                temperatures[index] = float(temperature)
                 conductivities[index] = float(conductivity)
                 diffusivities[index] = float(conductivity / (density * heat_capacity))
                 objects[index] = material
                 densities[index] = float(density)
                 viscosities[index] = float(viscosity)
-                fO2s[index] = float(fO2)
-                pressures[index] = float(pressure)
+                temperatures[index] = float(temperature + (grad_temperature * round(((z -
+                                    depth_range[0]) / self.spatial_res), self.spatial_sigfigs)))
+                pressures[index] = float(pressure + (grad_pressure * round(((z -
+                                    depth_range[0]) / self.spatial_res), self.spatial_sigfigs)))
+                fO2s[index] = float(fO2 + (grad_fO2 * round(((z -
+                                    depth_range[0]) / self.spatial_res), self.spatial_sigfigs)))
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
                 self.id_val += 1
