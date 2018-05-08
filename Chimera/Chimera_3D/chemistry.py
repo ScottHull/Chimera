@@ -29,14 +29,17 @@ class Chemistry:
         temperature_coeff = coeffs[1]
         pressure_coeff = coeffs[2]
         fO2_coeff = coeffs[3]
-        self.partitioning.update({element:
+        self.partitioning.update(
+            {
+                element:
                                       {
                                           'intercept': intercept,
                                             'temperature': temperature_coeff,
                                             'pressure': pressure_coeff,
                                             'fo2': fO2_coeff,
                                             }
-        })
+        }
+        )
         return self.partitioning
 
 
@@ -46,6 +49,7 @@ class Chemistry:
         for element in object_composition:
             conc_object = object_composition[element]
             conc_matrix = self.matrix[matrix_material][element]
+            print("\n", conc_object, conc_matrix)
             predicted_D = self.partitioning[element]['intercept'] \
                            + (self.partitioning[element]['temperature'] * temperature) \
                            + (self.partitioning[element]['pressure'] * pressure) \
@@ -64,5 +68,9 @@ class Chemistry:
                 self.matrix[matrix_material][element] += delta_conc
             else:  # at equilibrium, need to do nothing
                 pass
-
+            verify_D = object_composition[element] / self.matrix[matrix_material][element]
+            print("Object comp: {}, matrix_comp: {}, adjust: {}, predicted_D: {}, current_D: {}, verify_D: {}".format(
+                object_composition[element], self.matrix[matrix_material][element], adjust, predicted_D, current_D,
+                verify_D
+            ))
         return

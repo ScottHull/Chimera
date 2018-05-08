@@ -13,7 +13,7 @@ import warnings; warnings.filterwarnings('ignore')
 class Box():
 
     def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True, settling_mode='stokes terminal',
-                 radioactivity=True, chem=True, verbose=True):
+                 radioactivity=True, chem=True, verbose=True, remove_stagnant=False):
         self.mesh = pd.DataFrame({
         })
         self.objects = pd.DataFrame({
@@ -46,6 +46,8 @@ class Box():
             self.num_workers = mp.cpu_count()
         self.chemistry = chemistry.Chemistry(box=self)
         self.objectGenerators = {}
+        self.num_objects = 0
+        self.log_interval = None
 
 
     def build(self, spatial_res, x, y, z=None):
@@ -294,23 +296,25 @@ class Box():
             self.objects['composition'] = compositions
         self.id_val += 1
         self.object = True
+        self.num_objects += 1
         console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
                                                                         time.time() - t_start), verbose=self.verbose)
 
         return
 
     def insertObjectGenerator(self, generator_name, material, num_per_iteration, temperature, radius, conductivity,
-                              density, drag_coeff, cp, x_range, y_range, z_range):
+                              density, drag_coeff, cp, x_range, y_range, z_range, composition={}):
 
         def objectGenerator(instance, material, num_per_iteration, temperature, radius, conductivity, density, drag_coeff, cp,
-                              x_range, y_range, z_range):
+                              x_range, y_range, z_range, composition={}):
 
             for i in range(num_per_iteration):
                 x = uniform(x_range[0], x_range[1])
                 y = uniform(y_range[0], y_range[1])
                 z = uniform(z_range[0], z_range[1])
                 instance.insert_object(material=material, conductivity=conductivity, temperature=temperature,
-                                   radius=radius, density=density, drag_coeff=drag_coeff, cp=cp, x=x, y=y, z=z)
+                                   radius=radius, density=density, drag_coeff=drag_coeff, cp=cp, x=x, y=y,
+                                   z=z, composition=composition)
 
         self.objectGenerators.update({generator_name: partial(objectGenerator, instance=self, material=material,
                                                                       num_per_iteration=num_per_iteration,
@@ -318,7 +322,7 @@ class Box():
                                                                       conductivity=conductivity, density=density,
                                                                       drag_coeff=drag_coeff, cp=cp,
                                                                       x_range=x_range, y_range=y_range,
-                                                                      z_range=z_range)})
+                                                                      z_range=z_range, composition=composition)})
 
 
 
@@ -332,22 +336,30 @@ class Box():
         if 'NONE' in objects:
             console.error("WARNING! Not all coordinate spaces defined in box!", verbose=True)
         else:
-            console.event("Box verified!", verbose=True)
+            console.event("Box verified!", verbose=self.verbose)
 
-    def to_csv(self):
+    def to_csv(self, model_time=""):
         """
         Returns csv formats of all stored dataframes.
         :return:
         """
-        self.mesh.to_csv("mesh.csv", index=False)
-        self.objects.to_csv("objects.csv", index=False)
+        self.mesh.to_csv("mesh_{}.csv".format(model_time), index=False)
+        self.objects.to_csv("objects_{}.csv".format(model_time), index=False)
+        matrix_chem_file = open("matrix_chem_{}.txt".format(model_time), 'w')
+        matrix_chem_file.write(str(self.chemistry.matrix))
+        matrix_chem_file.close()
+        partition_file = open("partitioning_{}.txt".format(model_time), 'w')
+        partition_file.write(str(self.chemistry.partitioning))
+        partition_file.close()
+        # pd.DataFrame(self.chemistry.matrix).to_csv("matrix_chem_{}.csv".format(model_time), index=False)
+        # pd.DataFrame(self.chemistry.partitioning).to_csv("partitioning_{}.csv".format(model_time), index=False)
 
     def return_mesh(self, mesh, **kwargs):
         for key, val in kwargs.items():
             mesh[str(key)] = val
         return mesh
 
-    def update(self, auto_update=True, timestep=False, animate_model=False, show_model=False):
+    def update(self, auto_update=True, timestep=False, animate_model=False, show_model=False, log_interval=None):
         """
         Update the model over one time step. Has the ability to run the model to completion.
         :param auto_update:
@@ -423,6 +435,12 @@ class Box():
                                  max_z=self.max_z, temperatures=temperatures, spatial_res=self.spatial_res,
                                  model_time=self.evolution_time,
                                  save=animate_model, show=show_model, heat=self.conduction)
+            if log_interval is not None:
+                if self.log_interval == log_interval:
+                    self.to_csv(model_time=self.evolution_time)
+                    self.log_interval = 0
+                else:
+                    self.log_interval += 1
             # update the new time in the model
             new_evolution_time = round(self.evolution_time - self.delta_time, self.spatial_sigfigs)
             self.evolution_time = new_evolution_time

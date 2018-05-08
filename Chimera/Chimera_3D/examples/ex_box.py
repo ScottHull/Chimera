@@ -18,14 +18,14 @@ cp_liq_fe = 825
 conductivity_liq_fe = 0.45
 drag_coeff_liq_fe = 0.2
 
-b = box.Box(evolution_time=5,
+b = box.Box(evolution_time=200,
             conduction=False,
             settling_mode='stokes terminal',
             radioactivity=True,
             chem=True,
-            verbose=True,
+            verbose=False,
             multiprocessing=False,
-            num_processors=2)
+            num_processors=1)
 b.build(spatial_res=spatial_res,
         x=x,
         y=y,
@@ -36,15 +36,15 @@ b.insert_matrix(material='test_matrix',
                 density=density_silicate,
                 viscosity=viscosity_silicate,
                 heat_capacity=cp_silicate,
-                composition={'w': 100.0},
+                composition={'w': 100},
                 temperature=2000,
                 pressure=1,
                 fO2=-1.5,
-                grad_temperature=1,
-                grad_pressure=2,
-                grad_fO2=-0.01
+                grad_temperature=0,
+                grad_pressure=0,
+                grad_fO2=0
                 )
-for i in range(1):
+for i in range(2):
     b.insert_object(material='test_object',
                     temperature=2000,
                     radius=0.01,
@@ -67,7 +67,8 @@ for i in range(1):
 #                         conductivity=conductivity_liq_fe,
 #                         density=density_liq_fe,
 #                         drag_coeff=drag_coeff_liq_fe,
-#                         cp=cp_liq_fe)
+#                         cp=cp_liq_fe,
+#                         composition={'w': 1.0})
 b.insert_boundary(temperature=2000,
                   depth_range=[0.0, round(0.0 + spatial_res), 2],
                   location='top')
@@ -78,4 +79,4 @@ b.verify_box()
 b.update(animate_model=False,
          show_model=False,
          timestep=1.0)
-b.to_csv()
+# b.to_csv()
