@@ -12,12 +12,17 @@ import warnings; warnings.filterwarnings('ignore')
 
 class Box():
 
-    def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True, settling_mode='stokes terminal',
-                 radioactivity=True, chem=True, verbose=True, remove_stagnant=False):
-        self.mesh = pd.DataFrame({
-        })
-        self.objects = pd.DataFrame({
-        })
+    def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True,
+                 settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True,
+                 remove_stagnant=False):
+        self.mesh = pd.DataFrame(
+            {
+        }
+        )
+        self.objects = pd.DataFrame(
+            {
+        }
+        )
         self.conduction = conduction
         self.settling_mode = settling_mode
         self.radioactivity = radioactivity
@@ -45,9 +50,12 @@ class Box():
         if self.num_workers > mp.cpu_count():
             self.num_workers = mp.cpu_count()
         self.chemistry = chemistry.Chemistry(box=self)
-        self.objectGenerators = {}
+        self.objectGenerators = {
+
+        }
         self.num_objects = 0
         self.log_interval = None
+        self.num_nodes = 0
 
 
     def build(self, spatial_res, x, y, z=None):
@@ -125,7 +133,8 @@ class Box():
         return self.mesh
 
     def insert_matrix(self, material, temperature, conductivity, fO2, density, viscosity, depth_range, heat_capacity,
-                      pressure, composition={}, grad_temperature=0.0, grad_pressure=0.0, grad_fO2=0.0):
+                      pressure, composition={}, element_diffusivity={}, grad_temperature=0.0,
+                      grad_pressure=0.0, grad_fO2=0.0):
         """
         Insert a matrix into the model.
         :param material:
@@ -156,8 +165,14 @@ class Box():
             # z = coords[2][self.dimension - 1]
             z = coord[2]
             if depth_range[0] <= z <= depth_range[1]:
-                index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                                               spatial_res=self.spatial_res, verbose=self.verbose)
+                index = backends.predict_index(
+                    coord=coord,
+                    max_x=self.max_x,
+                    max_y=self.max_y,
+                    max_z=self.max_z,
+                    spatial_res=self.spatial_res,
+                    verbose=self.verbose
+                )
                 console.nominal("Inserting matrix ({}) at {}...".format(material, coord), verbose=self.verbose)
                 conductivities[index] = float(conductivity)
                 diffusivities[index] = float(conductivity / (density * heat_capacity))
@@ -172,6 +187,9 @@ class Box():
                                     depth_range[0]) / self.spatial_res), self.spatial_sigfigs)))
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
+                if self.chem:
+                    self.chemistry.insertMatrixComposition(index=index, composition=composition, material=material,
+                                                           diffusivity=element_diffusivity)
                 self.id_val += 1
         # reset the dataframe columns
         self.mesh['temperature'] = temperatures
@@ -186,13 +204,12 @@ class Box():
         self.matrix = True
         # insert composition into the chemistry instance so it can be tracked independently to avoid
         # box getting garbled up
-        if self.chem is True:
-            self.chemistry.insertMatrixComposition(material=material, composition=composition)
         console.event("Finished inserting matrix ({}) into the box! (task took {}s)".format(material,
                                 time.time() - t_start), verbose=self.verbose)
         return material
 
-    def insert_boundary(self, temperature, depth_range, location, material='boundary'):
+    def insert_boundary(self, temperature, depth_range, location, material='boundary', composition={},
+                        element_diffusivity={}):
         """
         Insert boundary layers in the model.
         :param temperature:
@@ -208,14 +225,26 @@ class Box():
         objects = np.array(self.mesh['object'])
         object_ids = np.array(self.mesh['object_id'])
         for coord in coords:
-            if depth_range[0] <= coords[2][self.dimension - 1] <= depth_range[1]:
-                index = backends.predict_index(coord=coord, max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                                               spatial_res=self.spatial_res, verbose=self.verbose)
+            z = coord[2]
+            if depth_range[0] <= z <= depth_range[1]:
+                index = backends.predict_index(
+                    coord=coord,
+                    max_x=self.max_x,
+                    max_y=self.max_y,
+                    max_z=self.max_z,
+                    spatial_res=self.spatial_res,
+                    verbose=self.verbose
+                )
                 console.nominal("Inserting boundary ({}) at {}...".format(material, coord), verbose=self.verbose)
                 temperatures[index] = temperature
                 objects[index] = material
-                object_ids[index] = backends.generate_object_id(object_type='boundary',
-                                                                id_val=self.id_val)
+                object_ids[index] = backends.generate_object_id(
+                    object_type='boundary',
+                    id_val=self.id_val
+                )
+                if self.chem:
+                    self.chemistry.insertMatrixComposition(index=index, composition=composition, material=material,
+                                                           diffusivity=element_diffusivity)
                 self.id_val += 1
         self.mesh['temperature'] = temperatures
         self.mesh['object'] = objects
@@ -226,12 +255,14 @@ class Box():
             self.upper_model = round(depth_range[1] + (2 * self.spatial_res), self.spatial_sigfigs)
         elif location.lower() == "bottom" or location.lower() == "b":
             self.lower_model = round(depth_range[0] - (2 * self.spatial_res), self.spatial_sigfigs)
-        console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(material,
-                                                                                              time.time() - t_start), verbose=self.verbose)
+        console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(
+            material, time.time() - t_start), verbose=self.verbose
+        )
 
         return
 
-    def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z, composition={}):
+    def insert_object(self, material, temperature, radius, conductivity, density, drag_coeff, cp, x, y, z,
+                      composition={}):
         """
         Insert an object in the the objects dataframe.
         :param material:
@@ -263,10 +294,17 @@ class Box():
         drag_coeffs = self.objects['drag_coeff'].tolist()
         cps = self.objects['cp'].tolist()
         compositions = self.objects['composition'].tolist()
-        console.nominal("Inserting object ({}) at {}...".format(material, requested_coord), verbose=self.verbose)
+        console.nominal(
+            "Inserting object ({}) at {}...".format(
+                material, requested_coord), verbose=self.verbose
+        )
         objects.append(material)
-        object_ids.append(backends.generate_object_id(object_type='object',
-                                                      id_val=self.id_val))
+        object_ids.append(
+            backends.generate_object_id(
+                object_type='object',
+                id_val=self.id_val
+            )
+        )
         radii.append(float(radius))
         locs.append(requested_coord)
         temperatures.append(float(temperature))
@@ -275,8 +313,7 @@ class Box():
         velocities.append((0.0, 0.0, 0.0))
         drag_coeffs.append(float(drag_coeff))
         cps.append(float(cp))
-        if self.chem:
-            compositions.append(composition)
+        compositions.append(composition)
         # object_headers = [self.objects.columns.values]
         self.objects = pd.DataFrame()  # reset the dataframe to avoid length issues
         self.objects['object'] = objects
@@ -292,37 +329,61 @@ class Box():
         self.objects['nearest_index'] = np.NAN
         self.objects['cell_indices'] = np.NAN
         self.objects['cell_vertices'] = np.NAN
-        if self.chem:
-            self.objects['composition'] = compositions
+        self.objects['composition'] = compositions
         self.id_val += 1
         self.object = True
         self.num_objects += 1
-        console.event("Finished inserting object ({}) into the box! (task took {}s)".format(material,
-                                                                        time.time() - t_start), verbose=self.verbose)
+        console.event(
+            "Finished inserting object ({}) into the box! (task took {}s)".format(
+                material, time.time() - t_start), verbose=self.verbose
+        )
 
         return
 
     def insertObjectGenerator(self, generator_name, material, num_per_iteration, temperature, radius, conductivity,
                               density, drag_coeff, cp, x_range, y_range, z_range, composition={}):
 
-        def objectGenerator(instance, material, num_per_iteration, temperature, radius, conductivity, density, drag_coeff, cp,
-                              x_range, y_range, z_range, composition={}):
+        def objectGenerator(instance, material, num_per_iteration, temperature, radius, conductivity,
+                            density, drag_coeff, cp, x_range, y_range, z_range, composition={}):
 
             for i in range(num_per_iteration):
                 x = uniform(x_range[0], x_range[1])
                 y = uniform(y_range[0], y_range[1])
                 z = uniform(z_range[0], z_range[1])
-                instance.insert_object(material=material, conductivity=conductivity, temperature=temperature,
-                                   radius=radius, density=density, drag_coeff=drag_coeff, cp=cp, x=x, y=y,
-                                   z=z, composition=composition)
+                instance.insert_object(
+                    material=material,
+                    conductivity=conductivity,
+                    temperature=temperature,
+                    radius=radius,
+                    density=density,
+                    drag_coeff=drag_coeff,
+                    cp=cp,
+                    x=x,
+                    y=y,
+                    z=z,
+                    composition=composition
+                )
 
-        self.objectGenerators.update({generator_name: partial(objectGenerator, instance=self, material=material,
-                                                                      num_per_iteration=num_per_iteration,
-                                                                      temperature=temperature, radius=radius,
-                                                                      conductivity=conductivity, density=density,
-                                                                      drag_coeff=drag_coeff, cp=cp,
-                                                                      x_range=x_range, y_range=y_range,
-                                                                      z_range=z_range, composition=composition)})
+        self.objectGenerators.update(
+            {
+                generator_name: partial(
+                    objectGenerator,
+                    instance=self,
+                    material=material,
+                    num_per_iteration=num_per_iteration,
+                    temperature=temperature,
+                    radius=radius,
+                    conductivity=conductivity,
+                    density=density,
+                    drag_coeff=drag_coeff,
+                    cp=cp,
+                    x_range=x_range,
+                    y_range=y_range,
+                    z_range=z_range,
+                    composition=composition
+                )
+            }
+        )
 
 
 
@@ -345,9 +406,9 @@ class Box():
         """
         self.mesh.to_csv("mesh_{}.csv".format(model_time), index=False)
         self.objects.to_csv("objects_{}.csv".format(model_time), index=False)
-        matrix_chem_file = open("matrix_chem_{}.txt".format(model_time), 'w')
-        matrix_chem_file.write(str(self.chemistry.matrix))
-        matrix_chem_file.close()
+        # matrix_chem_file = open("matrix_chem_{}.txt".format(model_time), 'w')
+        # matrix_chem_file.write(str(self.chemistry.matrix))
+        # matrix_chem_file.close()
         partition_file = open("partitioning_{}.txt".format(model_time), 'w')
         partition_file.write(str(self.chemistry.partitioning))
         partition_file.close()
@@ -388,12 +449,14 @@ class Box():
         mesh_indices = np.array(self.mesh.index)
         len_coords = len(coords)
         # calculate the timestep based on the maximum conductivity of material in the box
-        self.delta_time = backends.override_timestep(timestep=timestep, conductivities=conductivities,
-                                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
-                                                     diffusivities=diffusivities, verbose=self.verbose)
-        real_delta_time = backends.override_timestep(timestep=False, conductivities=list(conductivities),
-                                                     spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
-                                                     diffusivities=diffusivities, verbose=self.verbose)
+        self.delta_time = backends.override_timestep(
+            timestep=timestep,
+            conductivities=conductivities,
+            spatial_res=self.spatial_res,
+            spatial_sigfigs=self.spatial_sigfigs,
+            diffusivities=diffusivities,
+            verbose=self.verbose
+        )
         # will run model to completion while the remaining time is above 0
         while auto_update is True and self.evolution_time > 0:
             console.nominal("Model time at: {} (timestep: {})...".format(
@@ -401,40 +464,92 @@ class Box():
             # run the object generator functions stored in the instance, if any
             for i in self.objectGenerators:
                 self.objectGenerators[i]()
-            # temperatures = np.array(self.mesh['temperature'])  # load in current temperatures across the mesh
+            # temperatures = np.array(self.mesh['temperature'])
+            #  load in current temperatures across the mesh
             #  perform actions on objects inside of the model but independent of the mesh
-            object_coords, nearest_indices, cell_indices = objects.object_actions(mesh_temperatures=temperatures,
-                                    objects_df=self.objects,
-                                    spatial_res=self.spatial_res, spatial_sigfigs=self.spatial_sigfigs,
-                                    evolution_time=self.evolution_time, delta_time=self.delta_time,
-                                    initial_time=self.initial_time, matrix_densities=density,
-                                    matrix_viscosities=viscosity, x_plus=x_plus, x_minus=x_minus, y_plus=y_plus,
-                                    y_minus=y_minus, z_plus=z_plus, z_minus=z_minus, max_x=self.max_x, max_y=self.max_y,
-                                    max_z=self.max_z, lower_model=self.lower_model, upper_model=self.upper_model,
-                                    verbose=self.verbose, conduction=self.conduction, matrix_conductivities=conductivities,
-                                    matrix_ids=object_ids, coords=coords, matrix_diffusivities=diffusivities,
-                                    chem=self.chem, chemistry=self.chemistry, mesh_fO2=fO2s, mesh_objects=mesh_objects,
-                                    mesh_pressures=pressures)
-            if self.conduction:
-                # finite central difference conductivity across entire box if conduction is specified
-                conduction_t = time.time()
-                conduction = heat.conduction(coords=coords, len_coords=len_coords, x_plus_indices=x_plus, x_minus_indices=x_minus,
-                                            y_plus_indices=y_plus, y_minus_indices=y_minus, z_plus_indices=z_plus,
-                                            z_minus_indices=z_minus, temperatures=temperatures, conductivities=conductivities,
-                                            spatial_res=self.spatial_res, delta_time=self.delta_time,
-                                            object_ids=object_ids, mesh_indices=mesh_indices, num_workers=self.num_workers,
-                                            multiprocess=self.multiprocessing, real_delta_time=real_delta_time)
-                # conduction will return tuple: temperature at index 0 and dT/dt at index 1
-                temperatures = conduction[0]
-                dT_dts = conduction[1]
-                console.nominal("Finished modeling conduction! (task took {}s)".format(time.time() - conduction_t), verbose=self.verbose)
+            object_coords, nearest_indices, cell_indices = objects.object_actions(
+                mesh_temperatures=temperatures,
+                objects_df=self.objects,
+                spatial_res=self.spatial_res,
+                spatial_sigfigs=self.spatial_sigfigs,
+                evolution_time=self.evolution_time,
+                delta_time=self.delta_time,
+                initial_time=self.initial_time,
+                matrix_densities=density,
+                matrix_viscosities=viscosity,
+                x_plus=x_plus,
+                x_minus=x_minus,
+                y_plus=y_plus,
+                y_minus=y_minus,
+                z_plus=z_plus,
+                z_minus=z_minus,
+                max_x=self.max_x,
+                max_y=self.max_y,
+                max_z=self.max_z,
+                lower_model=self.lower_model,
+                upper_model=self.upper_model,
+                verbose=self.verbose,
+                conduction=self.conduction,
+                matrix_conductivities=conductivities,
+                matrix_ids=object_ids,
+                coords=coords,
+                matrix_diffusivities=diffusivities,
+                chem=self.chem,
+                chemistry=self.chemistry,
+                mesh_fO2=fO2s,
+                mesh_objects=mesh_objects,
+                mesh_pressures=pressures
+            )
+            # if a PDE has to be calculated, loop through the model
+            # will pass if no PDE is needed in order to optimize runtime
+            if self.conduction or self.chem:
+                loop_t = time.time()
+                loop_outputs = backends.modelLoop(
+                    conduction=self.conduction,
+                    chem=self.chem,
+                    coords=coords,
+                    chemistry=self.chemistry,
+                    len_coords=len_coords,
+                    x_plus_indices=x_plus,
+                    x_minus_indices=x_minus,
+                    y_plus_indices=y_plus,
+                    y_minus_indices=y_minus,
+                    z_plus_indices=z_plus,
+                    z_minus_indices=z_minus,
+                    temperatures=temperatures,
+                    object_ids=object_ids,
+                    spatial_res=self.spatial_res,
+                    conductivities=conductivities,
+                    delta_time=self.delta_time,
+                    mesh_indices=mesh_indices,
+                    num_workers=self.num_workers,
+                    spatial_sigfigs=self.spatial_sigfigs,
+                    therm_diffusivities=diffusivities,
+                    verbose=self.verbose,
+                    multiprocess=False
+                )
+                if self.conduction:
+                    temperatures = loop_outputs[0]
+                    dT_dts = loop_outputs[1]
+                # if self.chem:
+                #     self.chemistry.matrix = loop_outputs[2]
             # plot the model's dynamic components, remove in the operational version
-            self.plots.plot_cell(object_coords=object_coords, nearest_coords=nearest_indices,
-                                 vertex_indices=cell_indices, mesh_coords=coords, max_x=self.max_x,
-                                 max_y=self.max_y,
-                                 max_z=self.max_z, temperatures=temperatures, spatial_res=self.spatial_res,
-                                 model_time=self.evolution_time,
-                                 save=animate_model, show=show_model, heat=self.conduction)
+            self.plots.plot_cell(
+                object_coords=object_coords,
+                nearest_coords=nearest_indices,
+                vertex_indices=cell_indices,
+                mesh_coords=coords,
+                max_x=self.max_x,
+                max_y=self.max_y,
+                max_z=self.max_z,
+                temperatures=temperatures,
+                spatial_res=self.spatial_res,
+                model_time=self.evolution_time,
+                save=animate_model,
+                show=show_model,
+                heat=self.conduction
+            )
+            # create logs at model intervals
             if log_interval is not None:
                 if self.log_interval == log_interval:
                     self.to_csv(model_time=self.evolution_time)
@@ -446,10 +561,31 @@ class Box():
             self.evolution_time = new_evolution_time
             self.iterations += 1
 
-        console.event("Model time is at 0! (task took {}s ({} iterations (1 iteration = {}s), {} timestep)".format(time.time() - t,
-                                                            self.iterations, (time.time() - t) / self.iterations, self.delta_time), verbose=self.verbose)
-        self.return_mesh(mesh=self.mesh, temperature=temperatures, dT_dt=dT_dts, conductivity=conductivities, density=density,
-                         viscosity=viscosity)
+        console.event(
+            "Model time is at 0! (task took {}s ({} iterations (1 iteration = {}s), {} timestep)".format(
+            time.time() - t, self.iterations, (time.time() - t) / self.iterations, self.delta_time),
+            verbose=self.verbose
+        )
+        if self.chem:
+            self.mesh['composition'] = np.array(self.chemistry.matrix)
+            self.return_mesh(
+                mesh=self.mesh,
+                temperature=temperatures,
+                dT_dt=dT_dts,
+                conductivity=conductivities,
+                density=density,
+                viscosity=viscosity,
+                mesh_composition=np.array(self.chemistry.matrix)
+            )
+        else:
+            self.return_mesh(
+                mesh=self.mesh,
+                temperature=temperatures,
+                dT_dt=dT_dts,
+                conductivity=conductivities,
+                density=density,
+                viscosity=viscosity,
+            )
         # will create animations of models if specified
         if animate_model is True:
             self.plots.animate(initial_time=self.initial_time)

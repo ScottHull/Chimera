@@ -33,7 +33,11 @@ class Mesh:
         z_vals = []
         nodes = []
         if self.dimensions is 3:
-            num_nodes = int(((self.x / self.spatial_res) + 1) * ((self.y / self.spatial_res) + 1) * ((self.z / self.spatial_res) + 1))
+            num_nodes = int((
+                            (self.x / self.spatial_res) + 1) *
+                            ((self.y / self.spatial_res) + 1) *
+                            ((self.z / self.spatial_res) + 1)
+                            )
             console.nominal("Detected a 3-D system! Generating a {} x {} x {} node model ({} nodes)!".format(
                 round(self.x / self.spatial_res, self.spatial_sigfigs),
                 round(self.y / self.spatial_res, self.spatial_sigfigs),

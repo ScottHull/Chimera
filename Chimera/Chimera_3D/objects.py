@@ -26,27 +26,57 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         coord = object_coords[object_index]  # get the current object coordinate
         #  interpolate to find the cell in which the object exists
         #  calculate the object's settling velocity
-        cell = backends.interpolate_cell(coord=coord, spatial_res=spatial_res,
-                                        spatial_sigfigs=spatial_sigfigs, max_x=max_x,
-                                        max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
-                                        y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
-                                        verbose=verbose)
+        cell = backends.interpolate_cell(
+            coord=coord,
+            spatial_res=spatial_res,
+            spatial_sigfigs=spatial_sigfigs,
+            max_x=max_x,
+            max_y=max_y,
+            max_z=max_z,
+            x_plus=x_plus,
+            x_minus=x_minus,
+            y_plus=y_plus,
+            y_minus=y_minus,
+            z_plus=z_plus,
+            z_minus=z_minus,
+            verbose=verbose
+        )
         nearest_indices[object_index] = cell[0]
         cell_indices[object_index] = cell[1]
         cell_vertices[object_index] = cell[2]
-        velocity = dynamics.stokes_terminal(density=object_densities[object_index],
-                                            density_matrix=matrix_densities[nearest_indices[object_index]],
-                                            drag_coeff=drag_coeffs[object_index], radius=object_radii[object_index],
-                                            viscosity_matrix=matrix_viscosities[nearest_indices[object_index]],
-                                            current_coord=coord, lower_model=lower_model, upper_model=upper_model)
+        velocity = dynamics.stokes_terminal(
+            density=object_densities[object_index],
+            density_matrix=matrix_densities[nearest_indices[object_index]],
+            drag_coeff=drag_coeffs[object_index],
+            radius=object_radii[object_index],
+            viscosity_matrix=matrix_viscosities[nearest_indices[object_index]],
+            current_coord=coord,
+            lower_model=lower_model,
+            upper_model=upper_model
+        )
         #  get the object's new coordinates based on the object's velocity
-        updated_coords, distance_travelled = backends.update_position(coord=coord, velocity=velocity, delta_time=delta_time,
-                                         max_z=lower_model, spatial_res=spatial_res)
-        cell = backends.interpolate_cell(coord=updated_coords, spatial_res=spatial_res,
-                                         spatial_sigfigs=spatial_sigfigs, max_x=max_x,
-                                         max_y=max_y, max_z=max_z, x_plus=x_plus, x_minus=x_minus,
-                                         y_plus=y_plus, y_minus=y_minus, z_plus=z_plus, z_minus=z_minus,
-                                         verbose=verbose)
+        updated_coords, distance_travelled = backends.update_position(
+            coord=coord,
+            velocity=velocity,
+            delta_time=delta_time,
+            max_z=lower_model,
+            spatial_res=spatial_res
+        )
+        cell = backends.interpolate_cell(
+            coord=updated_coords,
+            spatial_res=spatial_res,
+            spatial_sigfigs=spatial_sigfigs,
+            max_x=max_x,
+            max_y=max_y,
+            max_z=max_z,
+            x_plus=x_plus,
+            x_minus=x_minus,
+            y_plus=y_plus,
+            y_minus=y_minus,
+            z_plus=z_plus,
+            z_minus=z_minus,
+            verbose=verbose
+        )
         # determine the mesh cell within which the object resides
         # determine how much heat was produced through drag on the object
         viscous_heat = heat.viscous_dissipation(drag_coeff=drag_coeffs[object_index],
@@ -61,26 +91,40 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         object_temperatures[object_index] += viscous_heat
         # allow the heat from the object to conduct, assuming only in contact with nearest cell vertex
         if conduction:
-            object_conduction = heat.object_conduction(object_temperatures=object_temperatures,
-                                                       copy_mesh_temperatures=copy_mesh_temperatures,
-                                                       object_index=object_index,
-                                                       object_k=object_conductivities[object_index],
-                                                       spatial_res=spatial_res,
-                                                       delta_time=delta_time, mesh_temperatures=mesh_temperatures,
-                                                       nearest_index=cell[0], farthest_index=cell[3],
-                                                       directional_vertices=cell[4],
-                                                       vertex_distances=cell[5], total_distance=cell[6],
-                                                       matrix_k=matrix_conductivities[cell[0]],
-                                                       matrix_ids=matrix_ids, coords=coords,
-                                                       matrix_diffusivities=matrix_diffusivities,
-                                                       spatial_sigfigs=spatial_sigfigs, verbose=verbose)
+            object_conduction = heat.object_conduction(
+                object_temperatures=object_temperatures,
+                copy_mesh_temperatures=copy_mesh_temperatures,
+                object_index=object_index,
+                object_k=object_conductivities[object_index],
+                spatial_res=spatial_res,
+                delta_time=delta_time,
+                mesh_temperatures=mesh_temperatures,
+                nearest_index=cell[0],
+                farthest_index=cell[3],
+                directional_vertices=cell[4],
+                vertex_distances=cell[5],
+                total_distance=cell[6],
+                matrix_k=matrix_conductivities[cell[0]],
+                matrix_ids=matrix_ids,
+                coords=coords,
+                matrix_diffusivities=matrix_diffusivities,
+                spatial_sigfigs=spatial_sigfigs,
+                verbose=verbose
+            )
         if chem:
             chemistry.equilibrate(
-                object_composition=compositions[object_index], fo2=mesh_fO2[cell[0]],
-                temperature=mesh_temperatures[cell[0]], pressure=mesh_pressures[cell[0]],
-                matrix_material=mesh_objects[cell[0]])
-        console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
-            object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
+                object_concentrations=compositions,
+                object_index=object_index,
+                vertex_distances=cell[5],
+                matrix_ids=matrix_ids,
+                total_distance=cell[6],
+                vertex_indices=cell[1],
+                pressures=mesh_pressures,
+                temperatures=object_temperatures,
+                fO2=mesh_fO2
+            )
+        # console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
+        #     object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
         #  update the dataframes with the new data
         object_velocities[object_index] = velocity
         object_coords[object_index] = updated_coords

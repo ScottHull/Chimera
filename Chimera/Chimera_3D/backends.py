@@ -1,6 +1,7 @@
 from Chimera.Chimera_3D import console, dynamics, heat, box
 import numpy as np
 from math import sqrt
+import copy
 
 def set_columns(mesh_df, object_df, coords_range):
 
@@ -8,7 +9,8 @@ def set_columns(mesh_df, object_df, coords_range):
                     "zplus_index", "zminus_index", "temperature", "dT_dt", "conductivity", "viscosity", "density",
                     "diffusivity", 'fO2', 'pressure']
     object_columns = ["object", "object_id", "coords", "temperature", "radius", "conductivity", "density", "velocity",
-                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp", "diffusivity", "composition"]
+                      "cell_indices", "cell_vertices", "nearest_index", "drag_coeff", "cp", "diffusivity",
+                      "composition"]
     for i in mesh_columns:
         if i == "object" or i == "object_id":
             mesh_df[i] = ["NONE" for i in coords_range]
@@ -72,7 +74,11 @@ def predict_index(coord, max_x, max_y, spatial_res, max_z=None, verbose=True):
     s = spatial_res
     x, y, z = max_x, max_y, max_z
     if z is not None:
-        index = int(round((((i*y*z)/(s**3)) + (((i*y) + (i*z) + (j*z))/(s**2)) + ((i+j)/s) + (k/s))))
+        index = int(
+            round(
+                (((i*y*z)/(s**3)) + (((i*y) + (i*z) + (j*z))/(s**2)) + ((i+j)/s) + (k/s))
+            )
+        )
         return index
     else:
         console.error("2D point prediction not implemented!", verbose=verbose)
@@ -181,18 +187,39 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         return directional_dict
 
     x, y, z = coord[0], coord[1], coord[2]  # the x, y, z components of the coordinate
-    nearest_x, nearest_y, nearest_z = arbitrary_round(coord=coord, spatial_res=spatial_res,
-                                spatial_sigfigs=spatial_sigfigs)  # find the nearest defined coordinates in the mesh
+    nearest_x, nearest_y, nearest_z = arbitrary_round(
+        coord=coord,
+        spatial_res=spatial_res,
+        spatial_sigfigs=spatial_sigfigs
+    )  # find the nearest defined coordinates in the mesh
     nearest_coord = (nearest_x, nearest_y, nearest_z)  # the nearest coordinate point (tuple)
-    nearest_index = predict_index(coord=nearest_coord, max_x=max_x, max_y=max_y,
-                    max_z=max_z, spatial_res=spatial_res, verbose=verbose)  # get the mesh index position of the nearest coordinate point
+    nearest_index = predict_index(
+        coord=nearest_coord,
+        max_x=max_x,
+        max_y=max_y,
+        max_z=max_z,
+        spatial_res=spatial_res,
+        verbose=verbose
+    )  # get the mesh index position of the nearest coordinate point
     distance_x, distance_y, distance_z = (x - nearest_x), (y - nearest_y), (z - nearest_z)  # find the distance of the real coordinate to the nearest mesh coordinate
-    x_interpolate = get_neighbors(distance=distance_x, nearest_coord=nearest_x, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest x coordinate is +/- of real x coordinate
-    y_interpolate = get_neighbors(distance=distance_y, nearest_coord=nearest_y, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest y coordinate is +/- of real y coordinate
-    z_interpolate = get_neighbors(distance=distance_z, nearest_coord=nearest_z, spatial_res=spatial_res,
-                                  spatial_sigfigs=spatial_sigfigs)  # figure out if nearest z coordinate is +/- of real z coordinate
+    x_interpolate = get_neighbors(
+        distance=distance_x,
+        nearest_coord=nearest_x,
+        spatial_res=spatial_res,
+        spatial_sigfigs=spatial_sigfigs
+    )  # figure out if nearest x coordinate is +/- of real x coordinate
+    y_interpolate = get_neighbors(
+        distance=distance_y,
+        nearest_coord=nearest_y,
+        spatial_res=spatial_res,
+        spatial_sigfigs=spatial_sigfigs
+    )  # figure out if nearest y coordinate is +/- of real y coordinate
+    z_interpolate = get_neighbors(
+        distance=distance_z,
+        nearest_coord=nearest_z,
+        spatial_res=spatial_res,
+        spatial_sigfigs=spatial_sigfigs
+    )  # figure out if nearest z coordinate is +/- of real z coordinate
     if x_interpolate < nearest_x:
         x_plus_coord = nearest_x
         x_minus_coord = x_interpolate
@@ -271,8 +298,14 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
 
     cell_indices = []
     for i in cell_verteces:
-        vertex_index = predict_index(coord=i, max_x=max_x, max_y=max_y,
-                      max_z=max_z, spatial_res=spatial_res, verbose=verbose)
+        vertex_index = predict_index(
+            coord=i,
+            max_x=max_x,
+            max_y=max_y,
+            max_z=max_z,
+            spatial_res=spatial_res,
+            verbose=verbose
+        )
         cell_indices.append(vertex_index)
         # distance = sqrt(((nearest_coord[0] - i[0])**2) + ((nearest_coord[1] - i[1])**2) + ((nearest_coord[2] - i[2])**2))
         distance = sqrt(((x - i[0])**2) + ((y - i[1])**2) + ((z - i[2])**2))
@@ -281,8 +314,21 @@ def interpolate_cell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z, x
         if distance > max_distance:
             max_distance = distance
             farthest_coord = i
-        determine_directional_indices(x=x, y=y, z=z, directional_dict=directional_vertices, vertex=i, vertex_index=vertex_index)
-    farthest_index = predict_index(coord=farthest_coord, max_x=max_x, max_y=max_y, max_z=max_z, spatial_res=spatial_res)
+        determine_directional_indices(
+            x=x,
+            y=y,
+            z=z,
+            directional_dict=directional_vertices,
+            vertex=i,
+            vertex_index=vertex_index
+        )
+    farthest_index = predict_index(
+        coord=farthest_coord,
+        max_x=max_x,
+        max_y=max_y,
+        max_z=max_z,
+        spatial_res=spatial_res
+    )
 
     return nearest_index, cell_indices, cell_verteces, farthest_index, directional_vertices, \
                                                             vertex_distances, total_distance
@@ -333,3 +379,106 @@ def int_to_float(x):  # converts integer values into floats in a Pandas datafram
         return np.float(x) # if a number, it is converted to a float
     except:
         return np.nan # if not a number, it is NaN
+
+
+def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x_minus_indices, y_plus_indices,
+              y_minus_indices, z_plus_indices, z_minus_indices, temperatures, object_ids, spatial_res, spatial_sigfigs,
+              conductivities, delta_time, therm_diffusivities, mesh_indices, num_workers, verbose,
+              multiprocess=False):
+
+    # the thermal & chemical timestep relative to the possible user defined timestep
+    therm_real_delta_time = override_timestep(
+            timestep=False,
+            conductivities=list(conductivities),
+            spatial_res=spatial_res,
+            spatial_sigfigs=spatial_sigfigs,
+            diffusivities=therm_diffusivities,
+            verbose=verbose
+        )
+    chem_real_delta_time = override_timestep(
+            timestep=False,
+            conductivities=list(conductivities),
+            spatial_res=spatial_res,
+            spatial_sigfigs=spatial_sigfigs,
+            diffusivities=np.array([chemistry.diffusivities[i] for i in chemistry.diffusivities]),
+            verbose=verbose
+        )
+    update_temps = [0.0 for _ in
+                    range(0, len_coords)]  # all of the updated temperatures due to conduction
+    update_dT_dt = [0.0 for _ in range(0, len_coords)]
+
+    update_comps = copy.deepcopy(chemistry.matrix)  # all of the updated compositions due to conduction
+
+    for index, coord in enumerate(coords):
+        x_plus_index = x_plus_indices[index]  # index of the x+ coordinate position
+        x_minus_index = x_minus_indices[index]  # index of the x- coordinate position
+        y_plus_index = y_plus_indices[index]  # index of the y+ coordinate position
+        y_minus_index = y_minus_indices[index]  # index of the y- coordinate position
+        z_plus_index = z_plus_indices[index]  # index of the z+ coordinate position
+        z_minus_index = z_minus_indices[index]  # index of the z- coordinate position
+
+        if conduction:
+            temp_point = temperatures[index]  # temperature of the specified coordinate position
+            if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
+                temp_x_plus = temperatures[x_plus_index]  # temperature of the x+ coordinate position
+                temp_x_minus = temperatures[x_minus_index]  # temperature of the x- coordinate position
+                temp_y_plus = temperatures[y_plus_index]  # temperature of the y+ coordinate position
+                temp_y_minus = temperatures[y_minus_index]  # temperature of the y- coordinate position
+                temp_z_plus = temperatures[z_plus_index]  # temperature of the z+ coordinate position
+                temp_z_minus = temperatures[z_minus_index]  # temperature of the z- coordinate position
+                k = conductivities[index]  # conductivities of the material at position of coordinate z
+
+                # central difference laplacian is ((f_(x-1) - (2*f_(x)) + f_(x+1)) / (delta_x)^2)
+                # central difference laplacian is as follows for each vector component
+                x_temp_laplacian = ((temp_x_plus - (2 * temp_point) + temp_x_minus) / ((spatial_res) ** 2))
+                y_temp_laplacian = ((temp_y_plus - (2 * temp_point) + temp_y_minus) / ((spatial_res) ** 2))
+                z_temp_laplacian = ((temp_z_plus - (2 * temp_point) + temp_z_minus) / ((spatial_res) ** 2))
+                temp_laplacian = x_temp_laplacian + y_temp_laplacian + z_temp_laplacian
+
+                # change in temperature with respect to time, dT/dt = -k * laplacian(T)
+                dT_dt = k * temp_laplacian  # the central finite difference heat equation
+                update_dT_dt[index] = dT_dt
+
+                dT = dT_dt * (
+                            delta_time / therm_real_delta_time)  # the change in temperature with respect to the finite normalized timestep
+                new_T = temp_point + dT  # adds dT to the original temperature
+                update_temps[index] = new_T  # adds the new temperature to the updated temperature list
+            else:  # if it is a boundary layer, it is a fixed temperature
+                update_temps[index] = temp_point
+                update_dT_dt[index] = 0.0
+        if chem:
+            for element in chemistry.matrix[index]:
+                conc_point = chemistry.matrix[index][element]
+                if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
+                    conc_x_plus = chemistry.matrix[x_plus_index][element]  # chemistry.matrix of the x+ coordinate position
+                    conc_x_minus = chemistry.matrix[x_minus_index][element]  # chemistry.matrix of the x- coordinate position
+                    conc_y_plus = chemistry.matrix[y_plus_index][element]  # chemistry.matrix of the y+ coordinate position
+                    conc_y_minus = chemistry.matrix[y_minus_index][element]  # chemistry.matrix of the y- coordinate position
+                    conc_z_plus = chemistry.matrix[z_plus_index][element]  # chemistry.matrix of the z+ coordinate position
+                    conc_z_minus = chemistry.matrix[z_minus_index][element]  # chemistry.matrix of the z- coordinate position
+                    k = chemistry.diffusivities[element]  # conductivities of the material at position of coordinate z
+
+                    # central difference laplacian is ((f_(x-1) - (2*f_(x)) + f_(x+1)) / (delta_x)^2)
+                    # central difference laplacian is as follows for each vector component
+                    x_conc_laplacian = ((conc_x_plus - (2 * conc_point) + conc_x_minus) / (spatial_res ** 2))
+                    y_conc_laplacian = ((conc_y_plus - (2 * conc_point) + conc_y_minus) / (spatial_res ** 2))
+                    z_conc_laplacian = ((conc_z_plus - (2 * conc_point) + conc_z_minus) / (spatial_res ** 2))
+                    conc_laplacian = x_conc_laplacian + y_conc_laplacian + z_conc_laplacian
+
+                    # change in chemistry.matrix with respect to time, dT/dt = -k * laplacian(T)
+                    dC_dt = k * conc_laplacian  # the central finite difference heat equation
+                    # dT_dt_list[index] = dT_dt
+
+                    dC = dC_dt * (
+                            delta_time / chem_real_delta_time
+                    )  # the change in chemistry.matrix with respect to the finite normalized timestep
+                    new_C = conc_point + dC  # adds dT to the original chemistry.matrix
+                    update_comps[index][element] = new_C  # adds the new chemistry.matrix to the updated chemistry.matrix list
+                else:  # if it is a boundary layer, it is a fixed chemistry.matrix
+                    update_comps[index][element] = conc_point
+                    # dT_dt_list[index] = 0.0
+    # print("\n******")
+    # print(update_comps)
+    # print(chemistry.matrix)
+    # print("******\n")
+    return update_temps, update_dT_dt, update_comps
