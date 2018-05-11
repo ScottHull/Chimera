@@ -4,7 +4,7 @@ import random
 x = 10
 y = 10
 z = 10
-spatial_res = 1
+spatial_res = 0.5
 
 density_silicate = 3750
 cp_silicate = 10**3

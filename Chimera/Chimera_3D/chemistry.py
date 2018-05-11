@@ -143,9 +143,11 @@ class Chemistry:
                 object_concentrations[object_index][element] -= delta_conc
                 for vertex_index in vertex_distances:
                     if 'C' not in matrix_ids[vertex_index]:
+                        cp_dict = copy.deepcopy(self.matrix[vertex_index])
                         vertex_distance = vertex_distances[vertex_index]
                         distance_ratio = vertex_distance / total_distance
-                        self.matrix[vertex_index][element] += (delta_conc * distance_ratio)
+                        cp_dict[element] += (delta_conc * distance_ratio)
+                        self.matrix[vertex_index] = cp_dict
             else:  # at equilibrium, need to do nothing
                 pass
         return
