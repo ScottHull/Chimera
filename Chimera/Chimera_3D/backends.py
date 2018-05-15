@@ -417,6 +417,7 @@ def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x
         z_plus_index = z_plus_indices[index]  # index of the z+ coordinate position
         z_minus_index = z_minus_indices[index]  # index of the z- coordinate position
 
+        # fourier's law of thermal conduction
         if conduction:
             temp_point = temperatures[index]  # temperature of the specified coordinate position
             if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
@@ -446,6 +447,8 @@ def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x
             else:  # if it is a boundary layer, it is a fixed temperature
                 update_temps[index] = temp_point
                 update_dT_dt[index] = 0.0
+
+        # fick's 2nd law of chemical diffusion
         if chem:
             for element in chemistry.matrix[index]:
                 conc_point = chemistry.matrix[index][element]

@@ -1,9 +1,9 @@
 from Chimera.Chimera_3D import box
 import random
 
-x = 10
-y = 10
-z = 10
+x = 5
+y = 5
+z = 15
 spatial_res = 0.5
 
 density_silicate = 3750
@@ -19,7 +19,7 @@ conductivity_liq_fe = 0.45
 drag_coeff_liq_fe = 0.2
 
 b = box.Box(
-    evolution_time=2,
+    evolution_time=50,
     conduction=True,
     settling_mode='stokes terminal',
     radioactivity=True,
@@ -28,11 +28,12 @@ b = box.Box(
     multiprocessing=False,
     num_processors=1
 )
-b.build(spatial_res=spatial_res,
-        x=x,
-        y=y,
-        z=z
-        )
+b.build(
+    spatial_res=spatial_res,
+    x=x,
+    y=y,
+    z=z
+)
 b.insert_matrix(
     material='test_matrix',
     depth_range=[round(0.0 + spatial_res, 2), round(z - spatial_res, 2)],
@@ -44,19 +45,19 @@ b.insert_matrix(
     element_diffusivity={'w': 1.5 * 10**-2},
     temperature=2000,
     pressure=1,
-    fO2=-1.5,
-    grad_temperature=0,
+    fO2=-1.0,
+    grad_temperature=0.5,
     grad_pressure=0,
-    grad_fO2=0
+    grad_fO2=-0.001
 )
-for i in range(10):
+for i in range(1):
     b.insert_object(
         material='test_object',
         temperature=2000,
         radius=0.01,
         x=random.uniform(0, x),
         y=random.uniform(0, y),
-        z=random.uniform(spatial_res * 3, z - (spatial_res * 3)),
+        z=random.uniform(spatial_res * 3, spatial_res * 4),
         conductivity=conductivity_liq_fe,
         density=density_liq_fe,
         drag_coeff=drag_coeff_liq_fe,
@@ -96,4 +97,4 @@ b.update(
     show_model=False,
     timestep=1.0
 )
-b.to_csv()
+# b.to_csv()

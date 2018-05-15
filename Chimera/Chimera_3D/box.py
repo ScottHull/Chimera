@@ -531,10 +531,11 @@ class Box():
                 if self.conduction:
                     temperatures = loop_outputs[0]
                     dT_dts = loop_outputs[1]
-                # if self.chem:
-                #     self.chemistry.matrix = loop_outputs[2]
+                if self.chem:
+                    # self.chemistry.matrix = loop_outputs[2]
+                    self.chemistry.resetMatrixComp(new_matrix_comp=loop_outputs[2])
             # plot the model's dynamic components, remove in the operational version
-            self.plots.plot_cell(
+            self.plots.plot_cell_therm(
                 object_coords=object_coords,
                 nearest_coords=nearest_indices,
                 vertex_indices=cell_indices,
@@ -548,6 +549,21 @@ class Box():
                 save=animate_model,
                 show=show_model,
                 heat=self.conduction
+            )
+            self.plots.plot_cell_chem(
+                object_coords=object_coords,
+                vertex_indices=cell_indices,
+                mesh_coords=coords,
+                max_x=self.max_x,
+                max_y=self.max_y,
+                max_z=self.max_z,
+                mesh_composition=self.chemistry.matrix,
+                element='w',
+                model_time=self.evolution_time,
+                spatial_res=self.spatial_res,
+                chem=self.chem,
+                save=animate_model,
+                show=show_model
             )
             # create logs at model intervals
             if log_interval is not None:
@@ -588,5 +604,5 @@ class Box():
             )
         # will create animations of models if specified
         if animate_model is True:
-            self.plots.animate(initial_time=self.initial_time)
+            self.plots.animate(initial_time=self.initial_time, chem=self.chem, conduction=self.conduction)
         return None

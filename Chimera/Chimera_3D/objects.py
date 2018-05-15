@@ -89,6 +89,7 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                                                 distance_travelled=distance_travelled)
         # add the heat generated from viscous dissipation to the object
         object_temperatures[object_index] += viscous_heat
+
         # allow the heat from the object to conduct, assuming only in contact with nearest cell vertex
         if conduction:
             object_conduction = heat.object_conduction(
@@ -111,6 +112,7 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                 spatial_sigfigs=spatial_sigfigs,
                 verbose=verbose
             )
+        # chemically equilibrate the object with its surroundings
         if chem:
             chemistry.equilibrate(
                 object_concentrations=compositions,
@@ -121,10 +123,13 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                 vertex_indices=cell[1],
                 pressures=mesh_pressures,
                 temperatures=object_temperatures,
-                fO2=mesh_fO2
+                fO2=mesh_fO2,
+                spatial_res=spatial_res,
+                object_radius=object_radii[object_index]
             )
         # console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
         #     object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
+
         #  update the dataframes with the new data
         object_velocities[object_index] = velocity
         object_coords[object_index] = updated_coords
