@@ -79,20 +79,22 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
         )
         # determine the mesh cell within which the object resides
         # determine how much heat was produced through drag on the object
-        viscous_heat = heat.viscous_dissipation(drag_coeff=drag_coeffs[object_index],
-                                                cp=cps[object_index],
-                                                delta_time=delta_time,
-                                                matrix_density=matrix_densities[cell[0]],
-                                                object_density=object_densities[object_index],
-                                                object_radius=object_radii[object_index],
-                                                object_velocity=velocity,
-                                                distance_travelled=distance_travelled)
+        viscous_heat = heat.viscous_dissipation(
+            drag_coeff=drag_coeffs[object_index],
+            cp=cps[object_index],
+            delta_time=delta_time,
+            matrix_density=matrix_densities[cell[0]],
+            object_density=object_densities[object_index],
+            object_radius=object_radii[object_index],
+            object_velocity=velocity,
+            distance_travelled=distance_travelled
+        )
         # add the heat generated from viscous dissipation to the object
         object_temperatures[object_index] += viscous_heat
 
         # allow the heat from the object to conduct, assuming only in contact with nearest cell vertex
         if conduction:
-            object_conduction = heat.object_conduction(
+            heat.object_conduction(
                 object_temperatures=object_temperatures,
                 copy_mesh_temperatures=copy_mesh_temperatures,
                 object_index=object_index,
