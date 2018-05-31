@@ -5,7 +5,7 @@ import numpy as np
 import time
 import multiprocessing as mp
 from random import uniform
-from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects, chemistry
+from Chimera.Chimera_3D import mesh, console, backends, neighbors, heat, plots, objects, chemistry, mainloop
 import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
@@ -504,7 +504,7 @@ class Box():
             # will pass if no PDE is needed in order to optimize runtime
             if self.conduction or self.chem:
                 loop_t = time.time()
-                loop_outputs = backends.modelLoop(
+                loop_outputs = mainloop.modelLoop(
                     conduction=self.conduction,
                     chem=self.chem,
                     coords=coords,
