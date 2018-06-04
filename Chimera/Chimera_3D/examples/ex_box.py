@@ -1,11 +1,13 @@
 from Chimera.Chimera_3D import box
 import random
 
+# define some spatial parameters used to build the box model
 x = 5
 y = 5
 z = 15
 spatial_res = 0.5
 
+# define some material parameters used to build the box model
 density_silicate = 3750
 cp_silicate = 10**3
 diffusivity_silicate = 10**-6
@@ -18,6 +20,7 @@ cp_liq_fe = 825
 conductivity_liq_fe = 0.45
 drag_coeff_liq_fe = 0.2
 
+# instantiate the box
 b = box.Box(
     evolution_time=50,
     conduction=True,
@@ -94,7 +97,7 @@ b.insert_boundary(
 b.verify_box()
 b.update(
     animate_model=False,
-    show_model=False,
+    show_model=True,
     timestep=1.0
 )
 # b.to_csv()

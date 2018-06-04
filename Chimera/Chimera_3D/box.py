@@ -10,7 +10,7 @@ import warnings; warnings.filterwarnings('ignore')
 # import pyximport; pyximport.install()
 
 
-class Box():
+class Box:
 
     def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True,
                  settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True,

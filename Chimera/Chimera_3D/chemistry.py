@@ -106,17 +106,16 @@ class Chemistry:
             else:  # at equilibrium, need to do nothing
                 pass
 
-            print("\nADJUST: {}, OBJECT_CONC: {}, LIQUID_CONC: {}, PREDICTED_D: {}, CONFIRM_D: {}".format(
-                adjust, object_concentrations[object_index][element],
-                sum([self.matrix[i][element] for i in vertex_indices]),
-                predicted_D,
-                (object_concentrations[object_index][element] / object_volume) /
-                (sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume)
-            ))
+            # print("\nADJUST: {}, OBJECT_CONC: {}, LIQUID_CONC: {}, PREDICTED_D: {}, CONFIRM_D: {}".format(
+            #     adjust, object_concentrations[object_index][element],
+            #     sum([self.matrix[i][element] for i in vertex_indices]),
+            #     predicted_D,
+            #     (object_concentrations[object_index][element] / object_volume) /
+            #     (sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume)
+            # ))
 
         return
 
     def resetMatrixComp(self, new_matrix_comp):
-        print("here")
         self.matrix = new_matrix_comp
         return
