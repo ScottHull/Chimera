@@ -1,4 +1,4 @@
 Chimera
 =======
 
-Nothing to see here.
+Documentation pending.
