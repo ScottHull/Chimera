@@ -13,8 +13,7 @@ import warnings; warnings.filterwarnings('ignore')
 class Box:
 
     def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True,
-                 settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True,
-                 remove_stagnant=False):
+                 settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True):
         self.mesh = pd.DataFrame(
             {
         }
@@ -39,6 +38,7 @@ class Box:
         self.object = None
         self.boundary = None
         self.chem = chem
+        self.chemicaldiffusion = None
         self.lower_model = self.max_z
         self.upper_model = 0.0
         self.id_val = 0
@@ -419,6 +419,7 @@ class Box:
         for key, val in kwargs.items():
             mesh[str(key)] = val
         return mesh
+
 
     def update(self, auto_update=True, timestep=False, animate_model=False, show_model=False, log_interval=None):
         """
