@@ -4,8 +4,8 @@ import random
 # define some spatial parameters used to build the box model
 x = 5
 y = 5
-z = 10
-spatial_res = 1.0
+z = 50
+spatial_res = 0.5
 
 # define some material parameters used to build the box model
 density_silicate = 3750
@@ -81,15 +81,6 @@ b.insert_boundary(
     location='bottom',
     composition={'w': 100.0},
     element_diffusivity={'w': 1.5 * 10**-2}
-)
-
-b.chemistry.insertModel(
-    element='w',
-    alpha=1.11,
-    beta=-1.18,
-    chi=-0.85,
-    delta=1680,
-    epsilon=487
 )
 
 b.verify_box()

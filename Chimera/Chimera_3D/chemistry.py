@@ -35,22 +35,22 @@ class Chemistry:
         return None
 
 
-    def insertModel(self, element, alpha, beta, chi, delta, epsilon):
-
-        # eg. Cottrell et al. (2009) metal-silicate W partitioning model:
-        # log(D) = alpha + beta * (delta IW) + chi * (nbo/t) + delta * (1/T) + epsilon(P/T)
-
-        self.partitioning.update({
-            element: {
-                "alpha": alpha,
-                "beta": beta,
-                "chi": chi,
-                "delta": delta,
-                "epsilon": epsilon,
-            }
-        })
-
-        return None
+    # def insertModel(self, element, alpha, beta, chi, delta, epsilon):
+    #
+    #     # eg. Cottrell et al. (2009) metal-silicate W partitioning model:
+    #     # log(D) = alpha + beta * (delta IW) + chi * (nbo/t) + delta * (1/T) + epsilon(P/T)
+    #
+    #     self.partitioning.update({
+    #         element: {
+    #             "alpha": alpha,
+    #             "beta": beta,
+    #             "chi": chi,
+    #             "delta": delta,
+    #             "epsilon": epsilon,
+    #         }
+    #     })
+    #
+    #     return None
 
 
     def applyModel(self, element, pressure, temperature, fO2, nbo_t=2.6):
@@ -58,11 +58,81 @@ class Chemistry:
         # eg. Cottrell et al. (2009) metal-silicate W partitioning model:
         # log(D) = alpha + beta * (delta IW) + chi * (nbo/t) + delta * (1/T) + epsilon(P/T)
 
-        alpha = self.partitioning[element]['alpha']
-        beta = self.partitioning[element]['beta']
-        chi = self.partitioning[element]['chi']
-        delta = self.partitioning[element]['delta']
-        epsilon = self.partitioning[element]['epsilon']
+        # alpha = self.partitioning[element]['alpha']
+        # beta = self.partitioning[element]['beta']
+        # chi = self.partitioning[element]['chi']
+        # delta = self.partitioning[element]['delta']
+        # epsilon = self.partitioning[element]['epsilon']
+
+        coeffs = {
+            'alpha': 0,
+            'beta': 0,
+            'chi': 0,
+            'delta': 0,
+            'epsilon': 0
+        }
+
+        if 0.0 <= pressure <= 2:
+            coeffs['alpha'] = 1.11
+            coeffs['beta'] = -1.18
+            coeffs['chi'] = -0.85
+            coeffs['delta'] = 1680
+            coeffs['epsilon'] = 487
+        elif pressure == 2:
+            if 2300 < temperature < 2600:
+                coeffs['alpha'] = 0.84
+                coeffs['beta'] = -1.22
+                coeffs['chi'] = -0.85
+                coeffs['delta'] = 3245
+                coeffs['epsilon'] = 487
+        elif pressure == 6:
+            if 2300 < temperature < 2700:
+                coeffs['alpha'] = 1.17
+                coeffs['beta'] = -1.06
+                coeffs['chi'] = -0.90
+                coeffs['delta'] = 3337
+                coeffs['epsilon'] = 487
+        elif 2 < pressure:
+            coeffs['alpha'] = 1.05
+            coeffs['beta'] = -1.10
+            coeffs['chi'] = -0.84
+            coeffs['delta'] = 3588
+            coeffs['epsilon'] = -102
+
+        if 0.5 <= pressure <= 2:
+            if 2100 < temperature < 2600:
+                coeffs['alpha'] = 1.11
+                coeffs['beta'] = -1.18
+                coeffs['chi'] = -0.85
+                coeffs['delta'] = 1680
+                coeffs['epsilon'] = 487
+        elif pressure == 2:
+            if 2300 < temperature < 2600:
+                coeffs['alpha'] = 0.84
+                coeffs['beta'] = -1.22
+                coeffs['chi'] = -0.85
+                coeffs['delta'] = 3245
+                coeffs['epsilon'] = 487
+        elif pressure == 6:
+            if 2300 < temperature < 2700:
+                coeffs['alpha'] = 1.17
+                coeffs['beta'] = -1.06
+                coeffs['chi'] = -0.90
+                coeffs['delta'] = 3337
+                coeffs['epsilon'] = 487
+        elif 2 < pressure < 18:
+            if 2300 < temperature < 2700:
+                coeffs['alpha'] = 1.05
+                coeffs['beta'] = -1.10
+                coeffs['chi'] = -0.84
+                coeffs['delta'] = 3588
+                coeffs['epsilon'] = -102
+
+        alpha = coeffs['alpha']
+        beta = coeffs['beta']
+        chi = coeffs['chi']
+        delta = coeffs['delta']
+        epsilon = coeffs['epsilon']
 
         logD = alpha + (beta * fO2) + (chi * nbo_t) + (delta * (1/temperature)) + (epsilon * (pressure/temperature))
         D = 10**logD
@@ -140,9 +210,6 @@ class Chemistry:
                 # adjust the moles of the element in the object and matrix, respectively
                 object_moles[object_index][element] += adj_moles
                 for i in vertex_indices:
-                    print(adj_moles, len(vertex_indices))
-                    print((adj_moles / len(vertex_indices)))
-                    print(self.matrix[i][element])
                     copy_matrix_dict = copy.deepcopy(self.matrix[i])
                     copy_matrix_dict[element] -= (adj_moles / len(vertex_indices))
                     self.matrix[i] = copy_matrix_dict
@@ -151,10 +218,10 @@ class Chemistry:
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
 
-                print("\nTRACK 1\nPREDICTED D: {}\nNEW D: {}\nadj_matrix: {}\nadj_object: {}\nadj_moles: {}\n"
-                      "object_moles: {}\nnode_moles: {}\ncell_moles: {}"
-                      .format(predicted_D, new_D, adj_matrix, adj_object, adj_moles, object_moles[object_index][element],
-                              [self.matrix[i][element] for i in vertex_indices], sum([self.matrix[i][element] for i in vertex_indices])))
+                # print("\nTRACK 1\nPREDICTED D: {}\nNEW D: {}\nadj_matrix: {}\nadj_object: {}\nadj_moles: {}\n"
+                #       "object_moles: {}\nnode_moles: {}\ncell_moles: {}"
+                #       .format(predicted_D, new_D, adj_matrix, adj_object, adj_moles, object_moles[object_index][element],
+                #               [self.matrix[i][element] for i in vertex_indices], sum([self.matrix[i][element] for i in vertex_indices])))
 
 
             elif adjust < 1.0:
@@ -167,13 +234,15 @@ class Chemistry:
                 # adjust the moles of the element in the object and matrix, respectively
                 object_moles[object_index][element] -= adj_moles
                 for i in vertex_indices:
-                    self.matrix[i][element] += (adj_moles / len(vertex_indices))
+                    copy_matrix_dict = copy.deepcopy(self.matrix[i])
+                    copy_matrix_dict[element] += (adj_moles / len(vertex_indices))
+                    self.matrix[i] = copy_matrix_dict
 
                 new_conc_object = object_moles[object_index][element] / object_volume
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
 
-                print("\nTRACK 2\nPREDICTED D: {}\nNEW D: {}".format(predicted_D, new_D))
+                # print("\nTRACK 2\nPREDICTED D: {}\nNEW D: {}".format(predicted_D, new_D))
 
             else:
                 pass
