@@ -197,7 +197,7 @@ class Chemistry:
                 nbo_t=2.6
             )
             current_D = conc_object / cell_matrix_conc
-            print("CURRENT D ",current_D)
+            # print("CURRENT D ",current_D)
             adjust = predicted_D / current_D
 
             if adjust > 1.0:
