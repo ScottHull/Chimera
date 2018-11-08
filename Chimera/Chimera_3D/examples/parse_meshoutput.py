@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
 from ast import literal_eval
+from collections import OrderedDict
 
 
 def interpolateCell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z):
@@ -190,14 +191,13 @@ def interpolateCell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z):
 def parseMesh(const_xval, const_yval, min_zval, max_zval, spatial_res, spatial_sigfigs, max_x, max_y, max_z):
     df = pd.read_csv("mesh_.csv")
     coords_tuple = [const_xval, const_yval, min_zval]
-    cell_compositions = {}
+    cell_compositions = OrderedDict()
     cell_compositions_list = []
     while min_zval <= coords_tuple[2] <= max_zval:
         cell_comp = {coords_tuple[2]: 0}
         cell_vertices = interpolateCell(coord=coords_tuple, spatial_sigfigs=spatial_sigfigs, spatial_res=spatial_res,
                         max_x=max_x, max_y=max_y, max_z=max_z)
         for i in cell_vertices:
-            print(i)
             for row2 in df.index:
                 if df['coords'][row2] == str(i):
                     composition = df['composition'][row2]
@@ -207,6 +207,18 @@ def parseMesh(const_xval, const_yval, min_zval, max_zval, spatial_res, spatial_s
         cell_compositions_list.append(cell_comp[coords_tuple[2]])
         coords_tuple[2] = round(coords_tuple[2] + spatial_res, spatial_sigfigs)
 
+    return cell_compositions
+
+
+def plot1D(compositions):
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    z_depths = compositions.keys()
+    print(z_depths)
+    comps = [compositions[i] for i in z_depths]
+    ax.plot(z_depths, comps)
+    plt.show()
 
 
 
@@ -219,9 +231,10 @@ if __name__ == "__main__":
     spatial_sigfigs = 2
     max_x = 5.0
     max_y = 5.0
-    max_z = 15.0
-    parseMesh(const_xval=const_xval, const_yval=const_yval, min_zval=min_zval, max_zval=max_zval,
+    max_z = 8.0
+    compositions = parseMesh(const_xval=const_xval, const_yval=const_yval, min_zval=min_zval, max_zval=max_zval,
               spatial_res=spatial_res, spatial_sigfigs=spatial_sigfigs, max_x=max_x, max_y=max_y, max_z=max_z)
+    plot1D(compositions=compositions)
 
 
 
