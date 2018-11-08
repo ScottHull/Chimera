@@ -189,7 +189,7 @@ def interpolateCell(coord, spatial_sigfigs, spatial_res, max_x, max_y, max_z):
 
 def parseMesh(const_xval, const_yval, min_zval, max_zval, spatial_res, spatial_sigfigs, max_x, max_y, max_z):
     df = pd.read_csv("mesh_.csv")
-    coords_tuple = (const_xval, const_yval, min_zval)
+    coords_tuple = [const_xval, const_yval, min_zval]
     cell_compositions = {}
     cell_compositions_list = []
     while min_zval <= coords_tuple[2] <= max_zval:
@@ -205,6 +205,7 @@ def parseMesh(const_xval, const_yval, min_zval, max_zval, spatial_res, spatial_s
                     break
         cell_compositions.update(cell_comp)
         cell_compositions_list.append(cell_comp[coords_tuple[2]])
+        coords_tuple[2] = round(coords_tuple[2] + spatial_res, spatial_sigfigs)
 
 
 
