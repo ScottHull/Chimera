@@ -12,7 +12,7 @@ import warnings; warnings.filterwarnings('ignore')
 
 class Box:
 
-    def __init__(self, evolution_time, multiprocessing=False, num_processors=1, conduction=True,
+    def __init__(self, evolution_time, gravity, multiprocessing=False, num_processors=1, conduction=True,
                  settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True):
         self.mesh = pd.DataFrame(
             {
@@ -22,6 +22,7 @@ class Box:
             {
         }
         )
+        self.gravity = gravity,
         self.conduction = conduction
         self.settling_mode = settling_mode
         self.radioactivity = radioactivity
@@ -499,7 +500,8 @@ class Box:
                 chemistry=self.chemistry,
                 mesh_fO2=fO2s,
                 mesh_objects=mesh_objects,
-                mesh_pressures=pressures
+                mesh_pressures=pressures,
+                gravity=self.gravity,
             )
             # if a PDE has to be calculated, loop through the model
             # will pass if no PDE is needed in order to optimize runtime

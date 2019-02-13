@@ -45,10 +45,10 @@ b.insert_matrix(
     viscosity=viscosity_silicate,
     heat_capacity=cp_silicate,
     composition={'w': 100},
-    element_diffusivity={'w': 1.5 * 10**-2},
+    element_diffusivity={'w': diffusivity_silicate},
     temperature=2000,
     pressure=1,
-    fO2=-1.0,
+    fO2=-2.45,
     grad_temperature=0.5,
     grad_pressure=0,
     grad_fO2=-0.001

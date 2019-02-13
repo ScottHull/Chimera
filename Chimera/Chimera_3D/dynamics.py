@@ -1,12 +1,11 @@
 from math import pi, sqrt
 
 def stokes_terminal(density, drag_coeff, density_matrix, viscosity_matrix, radius,
-                    current_coord, lower_model, upper_model):
+                    current_coord, lower_model, upper_model, gravity):
 
     x, y, z = current_coord[0], current_coord[1], current_coord[2]
     if upper_model < z < lower_model:  # ensure that the object exists outside of the upper and lower boundary layers
         diameter = 2 * radius
-        gravity = 9.81
         friction_coeff = (pi/6) * ((density - density_matrix) / density_matrix) * \
                 (density_matrix / viscosity_matrix)**2 * (gravity * diameter**3)
         if friction_coeff < 10:  # low frictional coefficient, when body is in laminar flow regime

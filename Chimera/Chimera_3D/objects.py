@@ -4,7 +4,7 @@ from Chimera.Chimera_3D import dynamics, backends, heat, console
 def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs, evolution_time, initial_time, max_x, max_y, max_z,
                    x_plus, x_minus, y_plus, y_minus, z_plus, z_minus, delta_time, matrix_densities, matrix_viscosities,
                    mesh_temperatures, matrix_conductivities, lower_model, upper_model, matrix_diffusivities,
-                   verbose, chem, chemistry, mesh_fO2, mesh_pressures, mesh_objects, conduction=True):
+                   verbose, chem, chemistry, mesh_fO2, mesh_pressures, mesh_objects, gravity, conduction=True):
     # extract object information & parameters from the objects dataframe contained in the box
     object_objects = np.array(objects_df['object'])
     object_object_ids = np.array(objects_df['object_id'])
@@ -52,7 +52,8 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
             viscosity_matrix=matrix_viscosities[nearest_indices[object_index]],
             current_coord=coord,
             lower_model=lower_model,
-            upper_model=upper_model
+            upper_model=upper_model,
+            gravity=gravity,
         )
         #  get the object's new coordinates based on the object's velocity
         updated_coords, distance_travelled = backends.update_position(

@@ -70,40 +70,40 @@ def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x
                 update_dT_dt[index] = 0.0
 
         # fick's 2nd law of chemical diffusion
-        # if chem:
-        #     for element in chemistry.matrix[index]:
-        #         conc_point = chemistry.matrix[index][element]
-        #         if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
-        #             conc_x_plus = chemistry.matrix[x_plus_index][element]  # concentration of the x+ coordinate position
-        #             conc_x_minus = chemistry.matrix[x_minus_index][element]  # concentration of the x- coordinate position
-        #             conc_y_plus = chemistry.matrix[y_plus_index][element]  # concentration of the y+ coordinate position
-        #             conc_y_minus = chemistry.matrix[y_minus_index][element]  # concentration of the y- coordinate position
-        #             conc_z_plus = chemistry.matrix[z_plus_index][element]  # concentration of the z+ coordinate position
-        #             conc_z_minus = chemistry.matrix[z_minus_index][element]  # concentration of the z- coordinate position
-        #             k = chemistry.diffusivities[element]  # chemical diffusivities of the material at position of coordinate z
-        #
-        #             # central difference laplacian is ((f_(x-1) - (2*f_(x)) + f_(x+1)) / (delta_x)^2)
-        #             # central difference laplacian is as follows for each vector component
-        #             x_conc_laplacian = ((conc_x_plus - (2 * conc_point) + conc_x_minus) / (spatial_res ** 2))
-        #             y_conc_laplacian = ((conc_y_plus - (2 * conc_point) + conc_y_minus) / (spatial_res ** 2))
-        #             z_conc_laplacian = ((conc_z_plus - (2 * conc_point) + conc_z_minus) / (spatial_res ** 2))
-        #             conc_laplacian = x_conc_laplacian + y_conc_laplacian + z_conc_laplacian
-        #
-        #             # change in chemistry.matrix with respect to time, dT/dt = -k * laplacian(T)
-        #             dC_dt = k * conc_laplacian  # the central finite difference heat equation
-        #             # dT_dt_list[index] = dT_dt
-        #
-        #             # the change in chemistry.matrix with respect to the finite normalized timestep
-        #             dC = dC_dt * (
-        #                     delta_time / chem_real_delta_time
-        #             )
-        #             # adds dT to the original chemistry.matrix
-        #             new_C = conc_point + dC
-        #             # adds the new chemistry.matrix to the updated chemistry.matrix list
-        #             update_comps[index][element] = new_C
-        #         # if it is a boundary layer, it is a fixed chemistry.matrix
-        #         else:
-        #             update_comps[index][element] = conc_point
+        if chem:
+            for element in chemistry.matrix[index]:
+                conc_point = chemistry.matrix[index][element]
+                if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
+                    conc_x_plus = chemistry.matrix[x_plus_index][element]  # concentration of the x+ coordinate position
+                    conc_x_minus = chemistry.matrix[x_minus_index][element]  # concentration of the x- coordinate position
+                    conc_y_plus = chemistry.matrix[y_plus_index][element]  # concentration of the y+ coordinate position
+                    conc_y_minus = chemistry.matrix[y_minus_index][element]  # concentration of the y- coordinate position
+                    conc_z_plus = chemistry.matrix[z_plus_index][element]  # concentration of the z+ coordinate position
+                    conc_z_minus = chemistry.matrix[z_minus_index][element]  # concentration of the z- coordinate position
+                    k = chemistry.diffusivities[element]  # chemical diffusivities of the material at position of coordinate z
+
+                    # central difference laplacian is ((f_(x-1) - (2*f_(x)) + f_(x+1)) / (delta_x)^2)
+                    # central difference laplacian is as follows for each vector component
+                    x_conc_laplacian = ((conc_x_plus - (2 * conc_point) + conc_x_minus) / (spatial_res ** 2))
+                    y_conc_laplacian = ((conc_y_plus - (2 * conc_point) + conc_y_minus) / (spatial_res ** 2))
+                    z_conc_laplacian = ((conc_z_plus - (2 * conc_point) + conc_z_minus) / (spatial_res ** 2))
+                    conc_laplacian = x_conc_laplacian + y_conc_laplacian + z_conc_laplacian
+
+                    # change in chemistry.matrix with respect to time, dT/dt = -k * laplacian(T)
+                    dC_dt = k * conc_laplacian  # the central finite difference heat equation
+                    # dT_dt_list[index] = dT_dt
+
+                    # the change in chemistry.matrix with respect to the finite normalized timestep
+                    dC = dC_dt * (
+                            delta_time / chem_real_delta_time
+                    )
+                    # adds dT to the original chemistry.matrix
+                    new_C = conc_point + dC
+                    # adds the new chemistry.matrix to the updated chemistry.matrix list
+                    update_comps[index][element] = new_C
+                # if it is a boundary layer, it is a fixed chemistry.matrix
+                else:
+                    update_comps[index][element] = conc_point
 
 
     return update_temps, update_dT_dt, update_comps
