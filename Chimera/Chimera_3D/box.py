@@ -407,6 +407,7 @@ class Box:
         """
         self.mesh.to_csv("mesh_{}.csv".format(model_time), index=False)
         self.objects.to_csv("objects_{}.csv".format(model_time), index=False)
+        pd.DataFrame(self.chemistry.track_distribution_coeffs).to_csv("D_coeffs.csv")
         # matrix_chem_file = open("matrix_chem_{}.txt".format(model_time), 'w')
         # matrix_chem_file.write(str(self.chemistry.matrix))
         # matrix_chem_file.close()

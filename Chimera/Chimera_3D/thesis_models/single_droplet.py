@@ -22,8 +22,6 @@ drag_coeff_liq_fe = 0.2
 
 w_chemical_diffusivity = 10**-8
 
-print([400, z - 400], [0.0, spatial_res], [z - 400, z])
-
 # instantiate the box
 b = box.Box(
     evolution_time=1015200,
