@@ -22,7 +22,7 @@ class Box:
             {
         }
         )
-        self.gravity = gravity,
+        self.gravity = gravity
         self.conduction = conduction
         self.settling_mode = settling_mode
         self.radioactivity = radioactivity
