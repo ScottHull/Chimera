@@ -22,6 +22,7 @@ drag_coeff_liq_fe = 0.2
 
 w_chemical_diffusivity = 10**-8
 
+
 # instantiate the box
 b = box.Box(
     evolution_time=1015200,
