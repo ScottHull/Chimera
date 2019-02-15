@@ -2,10 +2,10 @@ from Chimera.Chimera_3D import box
 import random
 
 # define some spatial parameters used to build the box model
-x = 1200
-y = 1200
-z = 262 * 1000
-spatial_res = 400
+x = 1200.0
+y = 1200.0
+z = 262.0 * 1000
+spatial_res = 400.0
 
 # define some material parameters used to build the box model
 density_silicate = 3750
@@ -22,6 +22,8 @@ drag_coeff_liq_fe = 0.2
 
 w_chemical_diffusivity = 10**-8
 
+print([400, z - 400], [0.0, spatial_res], [z - 400, z])
+
 # instantiate the box
 b = box.Box(
     evolution_time=1015200,
@@ -29,7 +31,7 @@ b = box.Box(
     conduction=False,
     settling_mode='stokes terminal',
     radioactivity=True,
-    chem=False,
+    chem=True,
     verbose=True,
     multiprocessing=False,
     num_processors=1,
@@ -42,7 +44,7 @@ b.build(
 )
 b.insert_matrix(
     material='silicate_melt',
-    depth_range=[round(0.0 + spatial_res, 2), round(z - spatial_res, 2)],
+    depth_range=[spatial_res, z - 400],
     conductivity=conductivity_silicate,
     density=density_silicate,
     viscosity=viscosity_silicate,
@@ -79,8 +81,8 @@ b.insert_boundary(
     element_diffusivity={'w': w_chemical_diffusivity}
 )
 b.insert_boundary(
-    temperature=2000,
-    depth_range=[round(z-spatial_res), z],
+    temperature=2008,
+    depth_range=[z - spatial_res, z],
     location='bottom',
     composition={'w': 100.0},
     element_diffusivity={'w': w_chemical_diffusivity}

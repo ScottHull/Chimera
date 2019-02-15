@@ -17,6 +17,11 @@ class Chemistry:
         self.diffusivities = {}
         self.models = {}
         self.empty_matrix = True
+        self.track_distribution_coeffs = {
+            "z-depth": [],
+            'object': [],
+            'D': []
+        }
 
     def insertMatrixComposition(self, index, material, composition, diffusivity):
 
@@ -174,7 +179,7 @@ class Chemistry:
 
 
     def equilibrate(self, object_moles, object_index, vertex_distances, matrix_ids, total_distance,
-                     vertex_indices, pressures, temperatures, fO2, spatial_res, object_radius):
+                     vertex_indices, pressures, temperatures, fO2, spatial_res, object_radius, z_depth, object_id):
 
         object_volume = (4 / 3) * pi * (object_radius ** 3)
         cell_volume = spatial_res ** 3
@@ -196,6 +201,9 @@ class Chemistry:
                 fO2=avg_fO2,
                 nbo_t=2.6
             )
+            self.track_distribution_coeffs['z-depth'].append(z_depth)
+            self.track_distribution_coeffs['object'].append(object_id)
+            self.track_distribution_coeffs['D'].append(predicted_D)
             current_D = conc_object / cell_matrix_conc
             # print("CURRENT D ",current_D)
             adjust = predicted_D / current_D

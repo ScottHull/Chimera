@@ -130,7 +130,9 @@ def object_actions(objects_df, coords, matrix_ids, spatial_res, spatial_sigfigs,
                 temperatures=object_temperatures,
                 fO2=mesh_fO2,
                 spatial_res=spatial_res,
-                object_radius=object_radii[object_index]
+                object_radius=object_radii[object_index],
+                object_id=object_id,
+                z_depth=coord[2],
             )
         # console.event("{} ({}) will travel from {} to {} (velocity: {})".format(
         #     object_object, object_id, coord, updated_coords, velocity), verbose=verbose)
