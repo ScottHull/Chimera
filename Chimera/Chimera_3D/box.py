@@ -253,9 +253,9 @@ class Box:
         self.boundary = True
         # the upper-most usable portion of the model is the matrix immediately below the boundary
         if location.lower() == "top" or location.lower() == "t":
-            self.upper_model = round(depth_range[1] + (2 * self.spatial_res), self.spatial_sigfigs)
+            self.upper_model = 0.0 + self.spatial_res
         elif location.lower() == "bottom" or location.lower() == "b":
-            self.lower_model = round(depth_range[0] - (2 * self.spatial_res), self.spatial_sigfigs)
+            self.lower_model = self.max_z - self.spatial_res
         console.event("Finished inserting boundary ({}) into the box! (task took {}s)".format(
             material, time.time() - t_start), verbose=self.verbose
         )
