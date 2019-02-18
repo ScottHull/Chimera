@@ -257,7 +257,9 @@ class Chemistry:
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
 
             else:
-                pass
+
+                self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
+                self.track_distribution_coeffs['object_conc'].append(new_conc_object)
 
             self.track_distribution_coeffs['z-depth'].append(z_depth)
             self.track_distribution_coeffs['object'].append(object_id)
