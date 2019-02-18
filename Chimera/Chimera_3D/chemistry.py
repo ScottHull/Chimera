@@ -20,6 +20,12 @@ class Chemistry:
         self.track_distribution_coeffs = {
             "z-depth": [],
             'object': [],
+            'cell_temperature': [],
+            'cell_pressure': [],
+            'cell_fO2': [],
+            'cell_conc': [],
+            'object_conc': [],
+            'object_temperature': [],
             'D': []
         }
 
@@ -83,55 +89,55 @@ class Chemistry:
             coeffs['chi'] = -0.85
             coeffs['delta'] = 1680
             coeffs['epsilon'] = 487
-        elif pressure == 2:
-            if 2300 < temperature < 2600:
-                coeffs['alpha'] = 0.84
-                coeffs['beta'] = -1.22
-                coeffs['chi'] = -0.85
-                coeffs['delta'] = 3245
-                coeffs['epsilon'] = 487
-        elif pressure == 6:
-            if 2300 < temperature < 2700:
-                coeffs['alpha'] = 1.17
-                coeffs['beta'] = -1.06
-                coeffs['chi'] = -0.90
-                coeffs['delta'] = 3337
-                coeffs['epsilon'] = 487
-        elif 2 < pressure:
-            coeffs['alpha'] = 1.05
-            coeffs['beta'] = -1.10
-            coeffs['chi'] = -0.84
-            coeffs['delta'] = 3588
-            coeffs['epsilon'] = -102
-
-        if 0.5 <= pressure <= 2:
-            if 2100 < temperature < 2600:
-                coeffs['alpha'] = 1.11
-                coeffs['beta'] = -1.18
-                coeffs['chi'] = -0.85
-                coeffs['delta'] = 1680
-                coeffs['epsilon'] = 487
-        elif pressure == 2:
-            if 2300 < temperature < 2600:
-                coeffs['alpha'] = 0.84
-                coeffs['beta'] = -1.22
-                coeffs['chi'] = -0.85
-                coeffs['delta'] = 3245
-                coeffs['epsilon'] = 487
-        elif pressure == 6:
-            if 2300 < temperature < 2700:
-                coeffs['alpha'] = 1.17
-                coeffs['beta'] = -1.06
-                coeffs['chi'] = -0.90
-                coeffs['delta'] = 3337
-                coeffs['epsilon'] = 487
-        elif 2 < pressure < 18:
-            if 2300 < temperature < 2700:
-                coeffs['alpha'] = 1.05
-                coeffs['beta'] = -1.10
-                coeffs['chi'] = -0.84
-                coeffs['delta'] = 3588
-                coeffs['epsilon'] = -102
+        # elif pressure == 2:
+        #     if 2300 < temperature < 2600:
+        #         coeffs['alpha'] = 0.84
+        #         coeffs['beta'] = -1.22
+        #         coeffs['chi'] = -0.85
+        #         coeffs['delta'] = 3245
+        #         coeffs['epsilon'] = 487
+        # elif pressure == 6:
+        #     if 2300 < temperature < 2700:
+        #         coeffs['alpha'] = 1.17
+        #         coeffs['beta'] = -1.06
+        #         coeffs['chi'] = -0.90
+        #         coeffs['delta'] = 3337
+        #         coeffs['epsilon'] = 487
+        # elif 2 < pressure:
+        #     coeffs['alpha'] = 1.05
+        #     coeffs['beta'] = -1.10
+        #     coeffs['chi'] = -0.84
+        #     coeffs['delta'] = 3588
+        #     coeffs['epsilon'] = -102
+        #
+        # if 0.5 <= pressure <= 2:
+        #     if 2100 < temperature < 2600:
+        #         coeffs['alpha'] = 1.11
+        #         coeffs['beta'] = -1.18
+        #         coeffs['chi'] = -0.85
+        #         coeffs['delta'] = 1680
+        #         coeffs['epsilon'] = 487
+        # elif pressure == 2:
+        #     if 2300 < temperature < 2600:
+        #         coeffs['alpha'] = 0.84
+        #         coeffs['beta'] = -1.22
+        #         coeffs['chi'] = -0.85
+        #         coeffs['delta'] = 3245
+        #         coeffs['epsilon'] = 487
+        # elif pressure == 6:
+        #     if 2300 < temperature < 2700:
+        #         coeffs['alpha'] = 1.17
+        #         coeffs['beta'] = -1.06
+        #         coeffs['chi'] = -0.90
+        #         coeffs['delta'] = 3337
+        #         coeffs['epsilon'] = 487
+        # elif 2 < pressure < 18:
+        #     if 2300 < temperature < 2700:
+        #         coeffs['alpha'] = 1.05
+        #         coeffs['beta'] = -1.10
+        #         coeffs['chi'] = -0.84
+        #         coeffs['delta'] = 3588
+        #         coeffs['epsilon'] = -102
 
         alpha = coeffs['alpha']
         beta = coeffs['beta']
@@ -179,7 +185,8 @@ class Chemistry:
 
 
     def equilibrate(self, object_moles, object_index, vertex_distances, matrix_ids, total_distance,
-                     vertex_indices, pressures, temperatures, fO2, spatial_res, object_radius, z_depth, object_id):
+                     vertex_indices, pressures, temperatures, object_temperatures, fO2, spatial_res, object_radius,
+                    z_depth, object_id):
 
         object_volume = (4 / 3) * pi * (object_radius ** 3)
         cell_volume = spatial_res ** 3
@@ -188,22 +195,21 @@ class Chemistry:
             moles_cell = sum([self.matrix[i][element] for i in vertex_indices])
             cell_matrix_conc = moles_cell / cell_volume
             cell_pressure = [pressures[i] for i in vertex_indices]
+            cell_temperature = [temperatures[i] for i in vertex_indices]
             cell_fO2 = [fO2[i] for i in vertex_indices]
             moles_object = object_moles[object_index][element]
             conc_object = moles_object / object_volume
             avg_pressure = sum(cell_pressure) / float(len(cell_pressure))
             avg_fO2 = sum(cell_fO2) / float(len(cell_fO2))
-            temperature = temperatures[object_index]
+            avg_temperature = sum(cell_temperature) / float(len(cell_temperature))
+            object_temperature = object_temperatures[object_index]
             predicted_D = self.applyModel(
                 element=element,
-                temperature=temperature,
+                temperature=avg_temperature,
                 pressure=avg_pressure,
                 fO2=avg_fO2,
                 nbo_t=2.6
             )
-            self.track_distribution_coeffs['z-depth'].append(z_depth)
-            self.track_distribution_coeffs['object'].append(object_id)
-            self.track_distribution_coeffs['D'].append(predicted_D)
             current_D = conc_object / cell_matrix_conc
             # print("CURRENT D ",current_D)
             adjust = predicted_D / current_D
@@ -254,6 +260,16 @@ class Chemistry:
 
             else:
                 pass
+
+            self.track_distribution_coeffs['z-depth'].append(z_depth)
+            self.track_distribution_coeffs['object'].append(object_id)
+            self.track_distribution_coeffs['cell_temperature'].append(avg_temperature)
+            self.track_distribution_coeffs['cell_pressure'].append(avg_pressure)
+            self.track_distribution_coeffs['cell_fO2'].append(avg_fO2)
+            self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
+            self.track_distribution_coeffs['object_temperature'].append(object_temperature)
+            self.track_distribution_coeffs['cell_conc'].append(new_conc_object)
+            self.track_distribution_coeffs['D'].append(predicted_D)
 
 
 
