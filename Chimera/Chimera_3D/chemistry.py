@@ -232,11 +232,8 @@ class Chemistry:
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
 
-                # print("\nTRACK 1\nPREDICTED D: {}\nNEW D: {}\nadj_matrix: {}\nadj_object: {}\nadj_moles: {}\n"
-                #       "object_moles: {}\nnode_moles: {}\ncell_moles: {}"
-                #       .format(predicted_D, new_D, adj_matrix, adj_object, adj_moles, object_moles[object_index][element],
-                #               [self.matrix[i][element] for i in vertex_indices], sum([self.matrix[i][element] for i in vertex_indices])))
-
+                self.track_distribution_coeffs['object_temperature'].append(object_temperature)
+                self.track_distribution_coeffs['cell_conc'].append(new_conc_object)
 
             elif adjust < 1.0:
                 adj_matrix = (moles_cell /
@@ -256,7 +253,8 @@ class Chemistry:
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
 
-                # print("\nTRACK 2\nPREDICTED D: {}\nNEW D: {}".format(predicted_D, new_D))
+                self.track_distribution_coeffs['object_temperature'].append(object_temperature)
+                self.track_distribution_coeffs['cell_conc'].append(new_conc_object)
 
             else:
                 pass
@@ -267,8 +265,6 @@ class Chemistry:
             self.track_distribution_coeffs['cell_pressure'].append(avg_pressure)
             self.track_distribution_coeffs['cell_fO2'].append(avg_fO2)
             self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
-            self.track_distribution_coeffs['object_temperature'].append(object_temperature)
-            self.track_distribution_coeffs['cell_conc'].append(new_conc_object)
             self.track_distribution_coeffs['D'].append(predicted_D)
 
 
