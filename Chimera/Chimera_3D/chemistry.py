@@ -266,6 +266,7 @@ class Chemistry:
             self.track_distribution_coeffs['cell_temperature'].append(avg_temperature)
             self.track_distribution_coeffs['cell_pressure'].append(avg_pressure)
             self.track_distribution_coeffs['cell_fO2'].append(avg_fO2)
+            self.track_distribution_coeffs['object_temperature'].append(object_temperature)
             self.track_distribution_coeffs['D'].append(predicted_D)
 
 
