@@ -13,7 +13,8 @@ import warnings; warnings.filterwarnings('ignore')
 class Box:
 
     def __init__(self, evolution_time, gravity, multiprocessing=False, num_processors=1, conduction=True,
-                 settling_mode='stokes terminal', radioactivity=True, chem=True, verbose=True):
+                 settling_mode='stokes terminal', radioactivity=True, chemical_partitioning=True,
+                 chemical_diffusion=True, verbose=True):
         self.mesh = pd.DataFrame(
             {
         }
@@ -38,8 +39,8 @@ class Box:
         self.matrix = None
         self.object = None
         self.boundary = None
-        self.chem = chem
-        self.chemicaldiffusion = None
+        self.chemical_partitioning = chemical_partitioning
+        self.chemical_diffusion = chemical_diffusion
         self.lower_model = self.max_z
         self.upper_model = 0.0
         self.id_val = 0
@@ -497,7 +498,7 @@ class Box:
                 matrix_ids=object_ids,
                 coords=coords,
                 matrix_diffusivities=diffusivities,
-                chem=self.chem,
+                chemical_partitioning=self.chemical_partitioning,
                 chemistry=self.chemistry,
                 mesh_fO2=fO2s,
                 mesh_objects=mesh_objects,
@@ -506,11 +507,11 @@ class Box:
             )
             # if a PDE has to be calculated, loop through the model
             # will pass if no PDE is needed in order to optimize runtime
-            if self.conduction or self.chem:
+            if self.conduction or self.chemical_diffusion:
                 loop_t = time.time()
                 loop_outputs = mainloop.modelLoop(
                     conduction=self.conduction,
-                    chem=self.chem,
+                    chemical_diffusion=self.chemical_diffusion,
                     coords=coords,
                     chemistry=self.chemistry,
                     len_coords=len_coords,
@@ -535,7 +536,7 @@ class Box:
                 if self.conduction:
                     temperatures = loop_outputs[0]
                     dT_dts = loop_outputs[1]
-                if self.chem:
+                if self.chemical_diffusion:
                     # self.chemistry.matrix = loop_outputs[2]
                     self.chemistry.resetMatrixComp(new_matrix_comp=loop_outputs[2])
             # plot the model's dynamic components, remove in the operational version
@@ -586,7 +587,7 @@ class Box:
             time.time() - t, self.iterations, (time.time() - t) / self.iterations, self.delta_time),
             verbose=self.verbose
         )
-        if self.chem:
+        if self.chemical_diffusion:
             self.mesh['composition'] = np.array(self.chemistry.matrix)
             self.return_mesh(
                 mesh=self.mesh,

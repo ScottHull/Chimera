@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from .backends import override_timestep
 
-def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x_minus_indices, y_plus_indices,
+def modelLoop(conduction, chemical_diffusion, coords, chemistry, len_coords, x_plus_indices, x_minus_indices, y_plus_indices,
               y_minus_indices, z_plus_indices, z_minus_indices, temperatures, object_ids, spatial_res, spatial_sigfigs,
               conductivities, delta_time, therm_diffusivities, mesh_indices, num_workers, verbose,
               multiprocess=False):
@@ -70,7 +70,7 @@ def modelLoop(conduction, chem, coords, chemistry, len_coords, x_plus_indices, x
                 update_dT_dt[index] = 0.0
 
         # fick's 2nd law of chemical diffusion
-        if chem:
+        if chemical_diffusion:
             for element in chemistry.matrix[index]:
                 conc_point = chemistry.matrix[index][element]
                 if 'C' not in object_ids[index]:  # makes sure that point z is not a boundary layer
