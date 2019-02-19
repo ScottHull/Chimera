@@ -189,7 +189,7 @@ class Box:
                                     depth_range[0]) / self.spatial_res), self.spatial_sigfigs)))
                 object_ids[index] = backends.generate_object_id(object_type='matrix',
                                                                 id_val=self.id_val)
-                if self.chem:
+                if self.chemical_partitioning or self.chemical_diffusion:
                     self.chemistry.insertMatrixComposition(index=index, composition=composition, material=material,
                                                            diffusivity=element_diffusivity)
                 self.id_val += 1
@@ -244,7 +244,7 @@ class Box:
                     object_type='boundary',
                     id_val=self.id_val
                 )
-                if self.chem:
+                if self.chemical_partitioning or self.chemical_diffusion:
                     self.chemistry.insertMatrixComposition(index=index, composition=composition, material=material,
                                                            diffusivity=element_diffusivity)
                 self.id_val += 1
