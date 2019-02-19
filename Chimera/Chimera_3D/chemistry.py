@@ -25,6 +25,8 @@ class Chemistry:
             'cell_fO2': [],
             'cell_conc': [],
             'object_conc': [],
+            'cell_moles': [],
+            'object_moles': [],
             'object_temperature': [],
             'D': []
         }
@@ -255,11 +257,15 @@ class Chemistry:
 
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
+                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             else:
 
                 self.track_distribution_coeffs['cell_conc'].append(cell_matrix_conc)
                 self.track_distribution_coeffs['object_conc'].append(conc_object)
+                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             self.track_distribution_coeffs['z-depth'].append(z_depth)
             self.track_distribution_coeffs['object'].append(object_id)
