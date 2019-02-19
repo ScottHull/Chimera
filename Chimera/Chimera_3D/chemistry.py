@@ -236,7 +236,7 @@ class Chemistry:
 
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
-                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
                 self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             elif adjust < 1.0:
@@ -259,14 +259,14 @@ class Chemistry:
 
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
-                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
                 self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             else:
 
                 self.track_distribution_coeffs['cell_conc'].append(cell_matrix_conc)
                 self.track_distribution_coeffs['object_conc'].append(conc_object)
-                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
                 self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             self.track_distribution_coeffs['z-depth'].append(z_depth)
