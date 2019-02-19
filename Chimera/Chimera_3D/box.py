@@ -566,7 +566,7 @@ class Box:
                 element='w',
                 model_time=self.evolution_time,
                 spatial_res=self.spatial_res,
-                chem=self.chem,
+                chem=self.chemical_diffusion,
                 save=animate_model,
                 show=show_model
             )
