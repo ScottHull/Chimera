@@ -236,6 +236,8 @@ class Chemistry:
 
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
+                self.track_distribution_coeffs['cell_moles'].append([self.matrix[i][element] for i in vertex_indices])
+                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
 
             elif adjust < 1.0:
                 adj_matrix = (moles_cell /
