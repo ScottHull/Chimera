@@ -30,7 +30,7 @@ class Chemistry:
             'object_temperature': [],
             'D': [],
             'cell_bulk_moles': [],
-            'cell_bulk_conc': [].
+            'cell_bulk_conc': [],
         }
 
     def insertMatrixComposition(self, index, material, composition, diffusivity):
