@@ -28,7 +28,9 @@ class Chemistry:
             'cell_moles': [],
             'object_moles': [],
             'object_temperature': [],
-            'D': []
+            'D': [],
+            'cell_bulk_moles': [],
+            'cell_bulk_conc': [].
         }
 
     def insertMatrixComposition(self, index, material, composition, diffusivity):
@@ -233,11 +235,15 @@ class Chemistry:
                 new_conc_object = object_moles[object_index][element] / object_volume
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
+                new_cell_moles = sum([self.matrix[i][element] for i in vertex_indices])
+                new_object_moles = object_moles[object_index][element]
 
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
-                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
-                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
+                self.track_distribution_coeffs['cell_moles'].append(new_cell_moles)
+                self.track_distribution_coeffs['object_moles'].append(new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_moles'].append(new_cell_moles + new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_conc'].append(new_conc_cell + new_conc_object)
 
             elif adjust < 1.0:
                 adj_matrix = (moles_cell /
@@ -257,17 +263,27 @@ class Chemistry:
                 new_conc_cell = sum([self.matrix[i][element] for i in vertex_indices]) / cell_volume
                 new_D = new_conc_object / new_conc_cell
 
+                new_cell_moles = sum([self.matrix[i][element] for i in vertex_indices])
+                new_object_moles = object_moles[object_index][element]
+
                 self.track_distribution_coeffs['cell_conc'].append(new_conc_cell)
                 self.track_distribution_coeffs['object_conc'].append(new_conc_object)
-                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
-                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
+                self.track_distribution_coeffs['cell_moles'].append(new_cell_moles)
+                self.track_distribution_coeffs['object_moles'].append(new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_moles'].append(new_cell_moles + new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_conc'].append(new_conc_cell + new_conc_object)
 
             else:
 
+                new_cell_moles = sum([self.matrix[i][element] for i in vertex_indices])
+                new_object_moles = object_moles[object_index][element]
+
                 self.track_distribution_coeffs['cell_conc'].append(cell_matrix_conc)
                 self.track_distribution_coeffs['object_conc'].append(conc_object)
-                self.track_distribution_coeffs['cell_moles'].append(sum([self.matrix[i][element] for i in vertex_indices]))
-                self.track_distribution_coeffs['object_moles'].append(object_moles[object_index][element])
+                self.track_distribution_coeffs['cell_moles'].append(new_cell_moles)
+                self.track_distribution_coeffs['object_moles'].append(new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_moles'].append(new_cell_moles + new_object_moles)
+                self.track_distribution_coeffs['cell_bulk_conc'].append(cell_matrix_conc + conc_object)
 
             self.track_distribution_coeffs['z-depth'].append(z_depth)
             self.track_distribution_coeffs['object'].append(object_id)
